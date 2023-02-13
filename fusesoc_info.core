@@ -1,0 +1,53 @@
+CAPI=2:
+
+name: AFRL:device_converter:axis_uart:1.0.0
+description: UART core with rx/tx only (no handshaking at the moment).
+
+filesets:
+  src:
+    files:
+      - src/axis_uart.v
+      - src/axis_uart_rx.v
+      - src/axis_uart_tx.v
+      - src/uart_baud_gen.v
+    file_type: verilogSource
+  
+  tb:
+    files:
+      - tb/tb_uart.v
+      - tb/tb_uart_baud_gen.v
+      - tb/tb_uart_rx.v
+      - tb/tb_uart_tx.v
+    file_type: verilogSource
+    files_append:
+      - tb/in.bin     : { file_type: user, copyto: in.bin }
+    
+  dep:
+    depend:
+      - AFRL:utility:helper:1.0.0
+      
+  dep_tb:
+    depend:
+      - AFRL:simulation:axis_stimulator
+    
+targets:
+  default: &default
+    filesets: [src, dep]
+  
+  sim: &sim
+    <<: *default
+    default_tool: icarus
+    filesets_append: [tb, dep_tb]
+    toplevel: tb_uart
+    
+  sim_baud:
+    <<: *sim
+    toplevel: tb_uart_baud
+    
+  sim_rx:
+    <<: *sim
+    toplevel: tb_uart_rx
+    
+  sim_tx:
+    <<: *sim
+    toplevel: tb_uart_tx
