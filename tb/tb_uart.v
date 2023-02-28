@@ -28,10 +28,14 @@
 
 `timescale 1 ns/10 ps
 
-module tb_uart;
+module tb_uart #(
+  parameter IN_FILE_NAME = "in.bin",
+  parameter OUT_FILE_NAME = "out.bin",
+  parameter RAND_READY = 0);
   
   reg         tb_data_clk = 0;
   reg         tb_rst = 0;
+  reg         tb_r_eof = 0;
 
   wire [7:0]  tb_m_tdata;
   wire        tb_m_tvalid;
@@ -41,6 +45,9 @@ module tb_uart;
   wire        tb_s_tvalid;
   wire        tb_s_tready;
   wire        tb_uart_loop;
+  
+  wire        tb_eof;
+  
   //1ns
   localparam CLK_PERIOD = 20;
 
@@ -51,7 +58,7 @@ module tb_uart;
     .BUS_WIDTH(1),
     .USER_WIDTH(1),
     .DEST_WIDTH(1),
-    .FILE("in.bin")
+    .FILE(IN_FILE_NAME)
   ) slave_axis_stim (
     // output to slave
     .m_axis_aclk(tb_data_clk),
@@ -62,7 +69,8 @@ module tb_uart;
     .m_axis_tkeep(),
     .m_axis_tlast(),
     .m_axis_tuser(),
-    .m_axis_tdest()
+    .m_axis_tdest(),
+    .eof(tb_eof)
   );
   
   //device under test
@@ -100,7 +108,8 @@ module tb_uart;
     .BUS_WIDTH(1),
     .USER_WIDTH(1),
     .DEST_WIDTH(1),
-    .FILE("out.bin")
+    .RAND_READY(RAND_READY),
+    .FILE(OUT_FILE_NAME)
   ) master_axis_stim (
     // write
     .s_axis_aclk(tb_data_clk),
@@ -111,7 +120,8 @@ module tb_uart;
     .s_axis_tkeep(1'b1),
     .s_axis_tlast(1'b0),
     .s_axis_tuser(1'b0),
-    .s_axis_tdest(1'b0)
+    .s_axis_tdest(1'b0),
+    .eof(tb_r_eof)
   );
   
   //axis clock
@@ -132,17 +142,17 @@ module tb_uart;
     tb_rst <= 1'b0;
   end
   
+  // works for continuous, haven't tested random 
+  always @(posedge tb_data_clk) begin
+    if((tb_m_tvalid == 1'b1) && (dut.uart_tx.state != 3'd4)) begin
+      tb_r_eof <= tb_eof;
+    end
+  end
+  
   //copy pasta, fst generation
   initial
   begin
     $dumpfile("tb_uart.fst");
     $dumpvars(0,tb_uart);
-  end
-  
-  //copy pasta, no way to set runtime... this works in vivado as well.
-  initial begin
-    #100_000_000; // Wait a long time in simulation units (adjust as needed).
-    $display("END SIMULATION");
-    $finish;
   end
 endmodule

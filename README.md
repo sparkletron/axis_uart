@@ -1,5 +1,5 @@
 # UTIL AXIS UART
-## UART TO AXIS
+### UART TO AXIS
 ---
 
    author: Jay Convertino   
@@ -62,3 +62,15 @@ RTS/CTS is not implemented, it simply asserts it as if its always ready, and ign
 * fusesoc_info.core created.
 * Simulation uses icarus to run data through the core.
 
+#### TARGETS
+
+* RUN WITH: (fusesoc run --target=sim VENDER:CORE:NAME:VERSION)
+  - default (for IP integration builds)
+  - sim
+  - sim_rand_data
+  - sim_rand_ready_rand_data
+  - sim_8bit_count_data
+  - sim_rand_ready_8bit_count_data
+  - sim_baud
+  - sim_rx
+  - sim_tx
