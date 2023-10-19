@@ -1,4 +1,4 @@
-# UTIL AXIS UART
+# AXIS UART
 ### UART TO AXIS
 ---
 
@@ -12,7 +12,12 @@
    
 ---
 
-![rtl_img](./rtl.png)
+### Version
+#### Current
+  - V1.0.0 - initial release
+
+#### Previous
+  - none
 
 ### Dependencies
 #### Build
@@ -31,16 +36,16 @@ or sampling. Baud clock and aclk can be the same clock.
 RTS/CTS is not implemented, it simply asserts it as if its always ready, and ignores CTS.
 
 #### PARAMETERS
-* baud_clock_speed : DEFAULT = 2000000 : Clock speed of the baud clock. Best if it is a integer multiple of the baud rate, but does not have to be.
-* baud_rate : DEFAULT = 2000000 : Baud rate of the input/output data for the core.
-* parity_ena : DEFAULT = 1 : Enable parity check and generate.
-* parity_type : DEFAULT = 1 : Set the parity type, 0 = even, 1 = odd, 2 = mark, 3 = space.
-* stop_bits : DEFAULT = 1 : Number of stop bits, 0 to crazy non-standard amounts.
-* data_bits : DEFAULT = 8 : Number of data bits, 1 to crazy non-standard amounts.
-* rx_delay : DEFAULT = 0 : Delay in rx data input.
-* rx_baud_delay : DEFAULT = 0 : Delay in rx baud enable. This will delay when we sample a bit (default is midpoint when rx delay is 0).
-* tx_delay : DEFAULT = 0 : Delay in tx data output. Delays the time to output of the data.
-* tx_baud_delay : DEFAULT = 0 : Delay in tx baud enable. This will delay the time the bit output starts.
+* BAUD_CLOCK_SPEED : DEFAULT = 2000000 : Clock speed of the baud clock. Best if it is a integer multiple of the baud rate, but does not have to be.
+* BAUD_RATE : DEFAULT = 2000000 : Baud rate of the input/output data for the core.
+* PARITY_ENA : DEFAULT = 1 : Enable parity check and generate.
+* PARITY_TYPE : DEFAULT = 1 : Set the parity type, 0 = even, 1 = odd, 2 = mark, 3 = space.
+* STOP_BITS : DEFAULT = 1 : Number of stop bits, 0 to crazy non-standard amounts.
+* DATA_BITS : DEFAULT = 8 : Number of data bits, 1 to crazy non-standard amounts.
+* RX_DELAY : DEFAULT = 0 : Delay in rx data input.
+* RX_BAUD_DELAY : DEFAULT = 0 : Delay in rx baud enable. This will delay when we sample a bit (default is midpoint when rx delay is 0).
+* TX_DELAY : DEFAULT = 0 : Delay in tx data output. Delays the time to output of the data.
+* TX_BAUD_DELAY : DEFAULT = 0 : Delay in tx baud enable. This will delay the time the bit output starts.
 
 ### COMPONENTS
 #### SRC

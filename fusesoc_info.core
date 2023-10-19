@@ -31,10 +31,12 @@ filesets:
     
 targets:
   default: &default
+  description: Default for IP intergration.
     filesets: [src, dep]
   
   sim: &sim
     <<: *default
+    description: Base simulation using icarus as default.
     default_tool: icarus
     filesets_append: [tb, dep_tb]
     toplevel: tb_uart
@@ -47,6 +49,7 @@ targets:
 
   sim_rand_data:
     <<: *sim
+    description: Use random data as sim input.
     parameters:
       - IN_FILE_NAME=random.bin
       - OUT_FILE_NAME=out_random.bin
@@ -55,6 +58,7 @@ targets:
       
   sim_rand_ready_rand_data:
     <<: *sim
+    description: Use random data with a random ready as sim input.
     parameters:
       - IN_FILE_NAME=random.bin
       - OUT_FILE_NAME=out_random.bin
@@ -63,6 +67,7 @@ targets:
       
   sim_8bit_count_data:
     <<: *sim
+    description: Use counter data as sim input.
     parameters:
       - IN_FILE_NAME=8bit_count.bin
       - OUT_FILE_NAME=out_8bit_count.bin
@@ -71,6 +76,7 @@ targets:
   
   sim_rand_ready_8bit_count_data:
     <<: *sim
+    description: Use counter data with a random ready as sim input.
     parameters:
       - IN_FILE_NAME=8bit_count.bin
       - OUT_FILE_NAME=out_8bit_count.bin
@@ -79,6 +85,7 @@ targets:
     
   sim_baud:
     <<: *sim
+    description: Simulate only the baud rate generator.
     toplevel: tb_uart_baud
     parameters:
       - IN_FILE_NAME
@@ -87,6 +94,7 @@ targets:
     
   sim_rx:
     <<: *sim
+    description: Simulate only the rx block.
     toplevel: tb_uart_rx
     parameters:
       - IN_FILE_NAME
@@ -95,6 +103,7 @@ targets:
     
   sim_tx:
     <<: *sim
+    description: Simulate only the tx block.
     toplevel: tb_uart_tx
     parameters:
       - IN_FILE_NAME
