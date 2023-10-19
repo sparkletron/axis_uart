@@ -31,7 +31,7 @@ filesets:
     
 targets:
   default: &default
-  description: Default for IP intergration.
+    description: Default for IP intergration.
     filesets: [src, dep]
   
   sim: &sim
