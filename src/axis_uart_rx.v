@@ -40,10 +40,13 @@ module axis_uart_rx #(
     //clock and reset
     input aclk,
     input arstn,
+    //error states
+    output parity_err,
+    output frame_err,
     //master output
-    output  reg[DATA_BITS-1:0]  m_axis_tdata,
-    output  reg                 m_axis_tvalid,
-    input                       m_axis_tready,
+    (* mark_debug = "true", keep = "true" *)output  reg[DATA_BITS-1:0]  m_axis_tdata,
+    (* mark_debug = "true", keep = "true" *)output  reg                 m_axis_tvalid,
+    (* mark_debug = "true", keep = "true" *)input                       m_axis_tready,
     //uart input
     input         uart_clk,
     input         uart_rstn,
@@ -74,23 +77,29 @@ module axis_uart_rx #(
   localparam data_at_baud = 2'd3;
   
   //data reg
-  reg [bits_per_trans-1:0]reg_data;
+  (* mark_debug = "true", keep = "true" *)reg [bits_per_trans-1:0]reg_data;
   //parity bit storage
-  reg parity_bit;
+  (* mark_debug = "true", keep = "true" *)reg parity_bit;
+  //parity error storage
+  (* mark_debug = "true", keep = "true" *)reg r_parity_err;
+  (* mark_debug = "true", keep = "true" *)reg r_frame_err;
   //state machine
-  reg [2:0]  state = error;
-  reg [1:0]  uart_state = error;
+  (* mark_debug = "true", keep = "true" *)reg [2:0]  state = error;
+  (* mark_debug = "true", keep = "true" *)reg [1:0]  uart_state = error;
   //data to transmit
-  reg [DATA_BITS-1:0] data;
+  (* mark_debug = "true", keep = "true" *)reg [DATA_BITS-1:0] data;
   //counters
-  reg [clogb2(bits_per_trans)-1:0]  trans_counter;
-  reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
+  (* mark_debug = "true", keep = "true" *)reg [clogb2(bits_per_trans)-1:0]  trans_counter;
+  (* mark_debug = "true", keep = "true" *)reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
   //previous states
-  reg p_rxd;
+  (* mark_debug = "true", keep = "true" *)reg p_rxd;
   //transmit done
-  reg trans_fin;
+  (* mark_debug = "true", keep = "true" *)reg trans_fin;
   //wire_rxd
   wire wire_rxd;
+
+  assign parity_err = r_parity_err;
+  assign frame_err  = r_frame_err;
   
   //axis data output
   always @(posedge aclk) begin
@@ -124,6 +133,8 @@ module axis_uart_rx #(
       state           <= error;
       data            <= 0;
       parity_bit      <= 0;
+      r_parity_err    <= 0;
+      r_frame_err     <= 0;
     end else begin
       case (state)
         //capture data from interface (rx input below)
@@ -138,33 +149,51 @@ module axis_uart_rx #(
           end
         end
         data_reduce: begin
-          state <= (PARITY_ENA == 1'b1 ? parity_gen : trans);
+          state <= (PARITY_ENA >= 1'b1 ? parity_gen : trans);
           
           data <= reg_data[start_bit+DATA_BITS-1:start_bit];
           
           parity_bit <= reg_data[bits_per_trans-STOP_BITS-1];
+
+          //pull stop bit, if it is zero, frame error.
+          r_frame_err <= ~reg_data[bits_per_trans-1];
         end
         //compare to parity bit of incomming data and store in command
         parity_gen: begin
           state <= trans;
           
+          r_parity_err <= 1'b0;
+
+          //check if parity matches, if not do not output data.
           case (PARITY_TYPE)
             //odd parity
             1:
               if(^data ^ 1'b1 ^ parity_bit)
+              begin
                 state <= data_cap;
+                r_parity_err <= 1'b1;
+              end
             //mark parity
             2:
               if(parity_bit != 1'b1)
+              begin
                 state <= data_cap;
+                r_parity_err <= 1'b1;
+              end
             //space parity
             3:
               if(parity_bit != 1'b0)
+              begin
                 state <= data_cap;
+                r_parity_err <= 1'b1;
+              end
             //even parity
             default:
               if(^data ^ parity_bit)
+              begin
                 state <= data_cap;
+                r_parity_err <= 1'b1;
+              end
           endcase
         end
         //transmit data, actually done in data output process below.

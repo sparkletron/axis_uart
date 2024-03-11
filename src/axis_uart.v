@@ -47,6 +47,9 @@ module axis_uart #(
     //axis clock and reset
     input aclk,
     input arstn,
+    //receive error
+    output parity_err,
+    output frame_err,
     //slave input
     input  [DATA_BITS-1:0]  s_axis_tdata,
     input                   s_axis_tvalid,
@@ -124,6 +127,9 @@ module axis_uart #(
     //clock and reset
     .aclk(aclk),
     .arstn(arstn),
+    //error on receive
+    .parity_err(parity_err),
+    .frame_err(frame_err),
     //master output
     .m_axis_tdata(m_axis_tdata),
     .m_axis_tvalid(m_axis_tvalid),
