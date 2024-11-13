@@ -44,34 +44,25 @@ The following are the dependencies of the cores.
   \item cocotb (simulation)
 \end{itemize}
 
-\input{src/fusesoc/depend_axi_lite_uart.tex}
-
-\input{src/fusesoc/depend_wishbone_classic_uart.tex}
-
-\input{src/fusesoc/depend_up_uart.tex}
+\input{src/fusesoc/depend_fusesoc_info.tex}
 
 \subsection{In a Project}
 \par
-First, pick a core that matches the target bus in question. Then connect the BUS UART core to that bus. Once this is complete the UART pins will need
-to be routed so they match the UART device or other.
+This core connects a UART to the AXIS bus. Meaning this is a streaming device only. Connect the RX/TX to the UART in question and connect the AXIS to its intended endpoints.
 
 \section{Architecture}
 \par
 This core is made up of other cores that are documented in detail in there source. The cores this is made up of are the,
 \begin{itemize}
-  \item \textbf{axis\_uart} Interface with UART and present the data over AXIS interface (see core for documentation).
-  \item \textbf{fifo} Used for RX and TX FIFO instances. Set to 16 words buffer max (see core for documentation).
-  \item \textbf{up\_axi} An AXI Lite to uP converter core (see core for documentation).
-  \item \textbf{up\_wishbone\_classic} A wishbone classic to uP converter core (see core for documentation).
-  \item \textbf{up\_uart} Takes uP bus and coverts it to interface with the RX/TX FIFOs and the AXIS UART (see module documentation for information \ref{Module Documentation}).
+  \item \textbf{axis\_uart\_tx} Interface with UART TX and present the data over AXIS interface (see core for documentation).
+  \item \textbf{axis\_uart\_rx} Interface with UART RX and present the data over AXIS interface (see core for documentation).
+  \item \textbf{uart\_baud\_gen} Generates BAUD clock for RX and TX based on modulo divide method (see core for documentation).
 \end{itemize}
-
-For register documentation please see up\_uart in \ref{Module Documentation}
 
 \section{Building}
 
 \par
-The BUS UART is written in Verilog 2001. It should synthesize in any modern FPGA software. The core comes as a fusesoc packaged core and can be
+The AXIS UART is written in Verilog 2001. It should synthesize in any modern FPGA software. The core comes as a fusesoc packaged core and can be
 included in any other core. Be sure to make sure you have meet the dependencies listed in the previous section.
 
 \subsection{fusesoc}
@@ -82,19 +73,11 @@ a system and should be integrated into a fusesoc based system. Simulations are s
 
 \subsection{Source Files}
 
-\input{src/fusesoc/files_axi_lite_uart.tex}
-
-\input{src/fusesoc/files_wishbone_classic_uart.tex}
-
-\input{src/fusesoc/files_up_uart.tex}
+\input{src/fusesoc/files_fusesoc_info.tex}
 
 \subsection{Targets}
 
-\input{src/fusesoc/targets_axi_lite_uart.tex}
-
-\input{src/fusesoc/targets_wishbone_classic_uart.tex}
-
-\input{src/fusesoc/targets_up_uart.tex}
+\input{src/fusesoc/targets_fusesoc_info.tex}
 
 \subsection{Directory Guide}
 
@@ -131,22 +114,15 @@ Future simulations will use cocotb. This feature is not yet implemented.
 
 \section{Module Documentation} \label{Module Documentation}
 
-\par
-up\_uart is the module that integrates the AXIS UART core.
-This includes FIFO's that have there inputs/outputs for data tied to registers mapped in the uP bus.
-The uP bus is the microprocessor bus based on Analog Devices design. It resembles a APB bus in design,
-and is the bridge to other buses BUS UART can use. This makes changing for AXI Lite, to Wishbone to whatever
-quick and painless.
+\begin{itemize}
+\item \textbf{axis\_uart\_tx} Interfaces AXIS to the UART transmit line.\\
+\item \textbf{axis\_uart\_rx} Interfaces AXIS to the UART receive line.\\
+\item \textbf{uart\_baud\_gen} Generates a Baud rate clock for the UART based on the input clock using modulo division method.
+The modulo method works by loading the clock speed (in hertz) used for generaton into a register. This register is then
+subtracted from by the desired baud clock (in hertz). Once the counter is depleted the remainder, if it exits, is added
+to the counter plus the original clock speed and the operation repeats. Each remiander is added back to the counter. This
+allows non-even divisions to evetually average out to the target rate.\\
+\item \textbf{axis\_uart Wrapper} for all of the above modules to create a singular device to interface with.\\
+\end{itemize}
 
-\par
-axi\_lite\_uart module adds a AXI Lite to uP (microprocessor) bus converter. The converter is
-from Analog Devices.
-
-\par
-wishbone\_classic\_uart module adds a Wishbone Classic to uP (microprocessor) bus converter. This
-converter was designed for Wishbone Classic only, NOT pipelined.
-
-\vspace{15mm}
-\par
-The next sections document these modules in great detail. up\_uart contains the register map explained, and what the various bits do.
 

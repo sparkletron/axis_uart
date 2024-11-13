@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("lic",["Information"],[["License",,[[,"License MIT",,,0,"File:axis_uart.v:License_MIT"]]]]);

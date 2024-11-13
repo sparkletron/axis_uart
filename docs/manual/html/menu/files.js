@@ -1,0 +1,1 @@
+﻿NDMenu.OnSectionLoaded("files.js",[[1,"axis_uart.v"],[1,"axis_uart_rx.v"],[1,"axis_uart_tx.v"],[1,"uart_baud_gen.v"]]);

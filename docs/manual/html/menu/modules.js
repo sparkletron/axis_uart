@@ -1,0 +1,1 @@
+﻿NDMenu.OnSectionLoaded("modules.js",[[1,"axis_uart"],[1,"axis_uart_rx"],[1,"axis_uart_tx"],[1,"uart_baud_gen"],[1,"uart_baud_gen_rx"],[1,"uart_baud_gen_tx"],[1,"uart_rx"],[1,"uart_tx"]]);

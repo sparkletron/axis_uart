@@ -1,34 +1,66 @@
 //******************************************************************************
-/// @FILE    axis_uart_rx.v
-/// @AUTHOR  JAY CONVERTINO
-/// @DATE    2021.06.24
-/// @BRIEF   AXIS UART RX CORE
-///
-/// @LICENSE MIT
-///  Copyright 2021 Jay Convertino
-///
-///  Permission is hereby granted, free of charge, to any person obtaining a copy
-///  of this software and associated documentation files (the "Software"), to 
-///  deal in the Software without restriction, including without limitation the
-///  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or 
-///  sell copies of the Software, and to permit persons to whom the Software is 
-///  furnished to do so, subject to the following conditions:
-///
-///  The above copyright notice and this permission notice shall be included in 
-///  all copies or substantial portions of the Software.
-///
-///  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-///  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-///  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-///  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-///  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-///  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-///  IN THE SOFTWARE.
+// file:    axis_uart_rx.v
+//
+// author:  JAY CONVERTINO
+//
+// date:    2021/06/24
+//
+// about:   Brief
+// UART RX to AXIS bus.
+//
+// license: License MIT
+// Copyright 2021 Jay Convertino
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+//
 //******************************************************************************
 
 `timescale 1ns/100ps
 
-//uart
+/*
+ * Module: axis_uart_rx
+ *
+ * AXIS UART, simple UART with AXI Streaming interface.
+ *
+ * Parameters:
+ *
+ *   PARITY_ENA       - Enable Parity for the data in and out.
+ *   PARITY_TYPE      - Set the parity type, 0 = even, 1 = odd, 2 = mark, 3 = space.
+ *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
+ *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
+ *   DELAY            - Delay in rx data input.
+ *
+ * Ports:
+ *
+ *   aclk           - Clock for AXIS
+ *   arstn          - Negative reset for AXIS
+ *   parity_err     - Indicates error with parity check (active high)
+ *   frame_err      - Indicates error with frame (active high)
+ *   m_axis_tdata   - Output data from UART RX
+ *   m_axis_tvalid  - When active high the output data is valid
+ *   m_axis_tready  - When set active high the output device is ready for data.
+ *   uart_clk       - Clock used for BAUD rate generation
+ *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
+ *   uart_ena       - Enable UART data processing from RX.
+ *   uart_hold      - Output to hold clock till in receive state.
+ *   rxd            - receive for UART (input from TX)
+ */
 module axis_uart_rx #(
     parameter PARITY_ENA  = 0,
     parameter PARITY_TYPE = 0,
@@ -37,22 +69,18 @@ module axis_uart_rx #(
     parameter DELAY       = 0
   ) 
   (
-    //clock and reset
-    input aclk,
-    input arstn,
-    //error states
-    output parity_err,
-    output frame_err,
-    //master output
-    (* mark_debug = "true", keep = "true" *)output  reg[DATA_BITS-1:0]  m_axis_tdata,
-    (* mark_debug = "true", keep = "true" *)output  reg                 m_axis_tvalid,
-    (* mark_debug = "true", keep = "true" *)input                       m_axis_tready,
-    //uart input
-    input         uart_clk,
-    input         uart_rstn,
-    input         uart_ena,
-    output  reg   uart_hold,
-    input         rxd
+    input                       aclk,
+    input                       arstn,
+    output                      parity_err,
+    output                      frame_err,
+    output  [DATA_BITS-1:0]     m_axis_tdata,
+    output                      m_axis_tvalid,
+    input                       m_axis_tready,
+    input                       uart_clk,
+    input                       uart_rstn,
+    input                       uart_ena,
+    output                      uart_hold,
+    input                       rxd
   );
   
   `include "util_helper_math.vh"
@@ -76,51 +104,61 @@ module axis_uart_rx #(
   localparam start_wait   = 2'd1;
   localparam data_at_baud = 2'd3;
   
-  //data reg
-  (* mark_debug = "true", keep = "true" *)reg [bits_per_trans-1:0]reg_data;
-  //parity bit storage
-  (* mark_debug = "true", keep = "true" *)reg parity_bit;
-  //parity error storage
-  (* mark_debug = "true", keep = "true" *)reg r_parity_err;
-  (* mark_debug = "true", keep = "true" *)reg r_frame_err;
-  //state machine
-  (* mark_debug = "true", keep = "true" *)reg [2:0]  state = error;
-  (* mark_debug = "true", keep = "true" *)reg [1:0]  uart_state = error;
-  //data to transmit
-  (* mark_debug = "true", keep = "true" *)reg [DATA_BITS-1:0] data;
-  //counters
-  (* mark_debug = "true", keep = "true" *)reg [clogb2(bits_per_trans)-1:0]  trans_counter;
-  (* mark_debug = "true", keep = "true" *)reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
-  //previous states
-  (* mark_debug = "true", keep = "true" *)reg p_rxd;
-  //transmit done
-  (* mark_debug = "true", keep = "true" *)reg trans_fin;
   //wire_rxd
   wire wire_rxd;
 
-  assign parity_err = r_parity_err;
-  assign frame_err  = r_frame_err;
-  
+  //data reg
+  reg [bits_per_trans-1:0]reg_data;
+  //parity bit storage
+  reg parity_bit;
+  //parity error storage
+  reg r_parity_err;
+  reg r_frame_err;
+  //state machine
+  reg [2:0]  state = error;
+  reg [1:0]  uart_state = error;
+  //data to transmit
+  reg [DATA_BITS-1:0] data;
+  //counters
+  reg [clogb2(bits_per_trans)-1:0]  trans_counter;
+  reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
+  //previous states
+  reg p_rxd;
+  //transmit done
+  reg trans_fin;
+
+  //reg to wire
+  reg [DATA_BITS-1:0]   r_m_axis_tdata;
+  reg                   r_m_axis_tvalid;
+  reg                   r_uart_hold;
+
+  //registers to external wires
+  assign parity_err     = r_parity_err;
+  assign frame_err      = r_frame_err;
+  assign m_axis_tdata   = r_m_axis_tdata;
+  assign m_axis_tvalid  = r_m_axis_tvalid;
+  assign uart_hold      = r_uart_hold;
+
   //axis data output
   always @(posedge aclk) begin
     if(arstn == 1'b0) begin
-      m_axis_tdata  <= 0;
-      m_axis_tvalid <= 0;
+      r_m_axis_tdata  <= 0;
+      r_m_axis_tvalid <= 0;
     end else begin
-      m_axis_tdata <= m_axis_tdata;
-      m_axis_tvalid<= m_axis_tvalid;
+      r_m_axis_tdata <= r_m_axis_tdata;
+      r_m_axis_tvalid<= r_m_axis_tvalid;
       case (state)
         //once the state machine is in transmisson state, begin data output
         trans: begin
-          m_axis_tdata  <= data;
-          m_axis_tvalid <= 1'b1;
+          r_m_axis_tdata  <= data;
+          r_m_axis_tvalid <= 1'b1;
         end
         //are we ready kids???? EYYY EYYY CAPTIAN....OHHHHH WHO LIVES IN A PINEAPPLE UNDER THE SEA.
         //...*cough* if we are ready, the data was captured. 0 it out to avoid duplicates.
         default: begin
           if(m_axis_tready == 1'b1) begin
-            m_axis_tdata  <= 0;
-            m_axis_tvalid <= 0;
+            r_m_axis_tdata  <= 0;
+            r_m_axis_tvalid <= 0;
           end
         end
         endcase
@@ -235,7 +273,7 @@ module axis_uart_rx #(
       trans_counter       <= 0;
       prev_trans_counter  <= 0;
       trans_fin           <= 0;
-      uart_hold           <= 1;
+      r_uart_hold         <= 1;
     end else begin
       p_rxd <= wire_rxd;
       
@@ -249,14 +287,14 @@ module axis_uart_rx #(
               
               //falling edge of wire_rxd is start bit (1 to 0).
               if((p_rxd == 1'b1) && (wire_rxd == 1'b0)) begin
-                uart_state <= data_at_baud;
-                uart_hold  <= 1'b0;
+                uart_state  <= data_at_baud;
+                r_uart_hold <= 1'b0;
               end
             end
             //once sync'd, caputre data at baud rate
             data_at_baud: begin
-              uart_state <= data_at_baud;
-              uart_hold  <= 1'b0;
+              uart_state  <= data_at_baud;
+              r_uart_hold <= 1'b0;
               
               //on uart enable, capture data... DELAY added if need be.
               if(uart_ena == 1'b1) begin
@@ -279,7 +317,7 @@ module axis_uart_rx #(
             end
             default: begin
               uart_state  <= start_wait;
-              uart_hold   <= 1'b1;
+              r_uart_hold <= 1'b1;
             end
           endcase
         end

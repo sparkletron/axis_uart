@@ -1,35 +1,63 @@
 //******************************************************************************
-/// @FILE    axis_uart_tx.v
-/// @AUTHOR  JAY CONVERTINO
-/// @DATE    2021.06.24
-/// @BRIEF   AXIS UART
-/// @DETAILS AXI streaming to UART transmitter
-///
-/// @LICENSE MIT
-///  Copyright 2021 Jay Convertino
-///
-///  Permission is hereby granted, free of charge, to any person obtaining a copy
-///  of this software and associated documentation files (the "Software"), to 
-///  deal in the Software without restriction, including without limitation the
-///  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or 
-///  sell copies of the Software, and to permit persons to whom the Software is 
-///  furnished to do so, subject to the following conditions:
-///
-///  The above copyright notice and this permission notice shall be included in 
-///  all copies or substantial portions of the Software.
-///
-///  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-///  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-///  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-///  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-///  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-///  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-///  IN THE SOFTWARE.
+// file:    axis_uart_tx.v
+//
+// author:  JAY CONVERTINO
+//
+// date:    2021/06/24
+//
+// about:   Brief
+// UART TX from AXIS bus.
+//
+// license: License MIT
+// Copyright 2021 Jay Convertino
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+//
 //******************************************************************************
 
 `timescale 1ns/100ps
 
-//UART
+/*
+ * Module: axis_uart_tx
+ *
+ * AXIS UART TX, simple UART TX from AXI Streaming interface.
+ *
+ * Parameters:
+ *
+ *   PARITY_ENA       - Enable Parity for the data in and out.
+ *   PARITY_TYPE      - Set the parity type, 0 = even, 1 = odd, 2 = mark, 3 = space.
+ *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
+ *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
+ *   DELAY            - Delay in tx data output. Delays the time to output of the data.
+ *
+ * Ports:
+ *
+ *   aclk           - Clock for AXIS
+ *   arstn          - Negative reset for AXIS
+ *   s_axis_tdata   - Input data for UART TX.
+ *   s_axis_tvalid  - When set active high the input data is valid
+ *   s_axis_tready  - When active high the device is ready for input data.
+ *   uart_clk       - Clock used for BAUD rate generation
+ *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
+ *   uart_ena       - When active high enable UART transmit state.
+ *   txd            - transmit for UART (output to RX)
+ */
 module axis_uart_tx #(
     parameter PARITY_ENA  = 0,
     parameter PARITY_TYPE = 1,
@@ -38,18 +66,15 @@ module axis_uart_tx #(
     parameter DELAY       = 0
   ) 
   (
-    //clock and reset
-    input aclk,
-    input arstn,
-    //slave input
-    (* mark_debug = "true", keep = "true" *)input   [DATA_BITS-1:0] s_axis_tdata,
-    (* mark_debug = "true", keep = "true" *)input                   s_axis_tvalid,
-    (* mark_debug = "true", keep = "true" *)output                  s_axis_tready,
-    //uart
-    input           uart_clk,
-    input           uart_rstn,
-    (* mark_debug = "true", keep = "true" *)input           uart_ena,
-    (* mark_debug = "true", keep = "true" *)output          txd
+    input                   aclk,
+    input                   arstn,
+    input   [DATA_BITS-1:0] s_axis_tdata,
+    input                   s_axis_tvalid,
+    output                  s_axis_tready,
+    input                   uart_clk,
+    input                   uart_rstn,
+    input                   uart_ena,
+    output                  txd
   );
   
   `include "util_helper_math.vh"
@@ -71,20 +96,20 @@ module axis_uart_tx #(
   localparam error        = 3'd0;
 
   //data reg
-  (* mark_debug = "true", keep = "true" *)reg [bits_per_trans-1:0]reg_data;
+  reg [bits_per_trans-1:0]reg_data;
   //parity bit storage
-  (* mark_debug = "true", keep = "true" *)reg parity_bit;
+  reg parity_bit;
   //state machine
-  (* mark_debug = "true", keep = "true" *)reg [2:0]  state = error;
+  reg [2:0]  state = error;
   //incoming data to transmit
-  (* mark_debug = "true", keep = "true" *)reg [DATA_BITS-1:0] data;
+  reg [DATA_BITS-1:0] data;
   //counters
-  (* mark_debug = "true", keep = "true" *)reg [clogb2(bits_per_trans)-1:0]  trans_counter;
-  (* mark_debug = "true", keep = "true" *)reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
+  reg [clogb2(bits_per_trans)-1:0]  trans_counter;
+  reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
   //transmit done
-  (* mark_debug = "true", keep = "true" *)reg trans_fin;
+  reg trans_fin;
   //Tx 
-  (* mark_debug = "true", keep = "true" *)reg reg_txd;
+  reg reg_txd;
 
   
   assign s_axis_tready = (state == data_cap ? arstn : 0);
