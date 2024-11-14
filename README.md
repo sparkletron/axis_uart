@@ -35,7 +35,7 @@
 #### Simulation
   - AFRL:simulation:axis_stimulator
 
-#### PARAMETERS
+### PARAMETERS
 
   * BAUD_CLOCK_SPEED  - Clock speed of the baud clock. Best if it is a integer multiple of the baud rate, but does not have to be.
   * BAUD_RATE         - Baud rate of the input/output data for the core.
