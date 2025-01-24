@@ -71,16 +71,16 @@ module uart_baud_gen #(
   
   //baud enable generator
   always @(posedge uart_clk) begin
-    if(uart_rstn == 1'b0) begin
+    if(uart_rstn == 1'b0 || uart_hold == 1'b1) begin
       counter     <= BAUD_CLOCK_SPEED/2;
-      r_uart_ena  <= 0;
+      r_uart_ena  <= 1'b0;
     end else begin
-      counter     <= (uart_hold == 1'b1 ? (BAUD_CLOCK_SPEED-BAUD_RATE) : counter + BAUD_RATE);
+      counter     <= counter + BAUD_RATE;
       r_uart_ena  <= 1'b0;
       
-      if(counter >= (BAUD_CLOCK_SPEED-BAUD_RATE)) begin
-        counter     <= counter % ((BAUD_CLOCK_SPEED-BAUD_RATE) == 0 ? 1 : (BAUD_CLOCK_SPEED-BAUD_RATE));
-        r_uart_ena  <= ~uart_hold;
+      if(counter >= BAUD_CLOCK_SPEED) begin
+        counter     <= counter % BAUD_CLOCK_SPEED;
+        r_uart_ena  <= 1'b1;
       end
     end
   end
