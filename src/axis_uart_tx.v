@@ -106,8 +106,6 @@ module axis_uart_tx #(
   //counters
   reg [clogb2(bits_per_trans)-1:0]  trans_counter;
   reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
-  //transmit done
-  reg trans_fin;
   //Tx 
   reg reg_txd;
 
@@ -171,23 +169,26 @@ module axis_uart_tx #(
         end
         //process command data to setup data transmission
         process: begin
-          state <= trans;
-          
-          //insert start bit
-          reg_data[start_bit-1:0] <= 1'b0;
-          
-          //insert stop bits
-          reg_data[bits_per_trans-1:bits_per_trans-STOP_BITS] <= {STOP_BITS{1'b1}};
-          
-          //insert data
-          reg_data[bits_per_trans-STOP_BITS-PARITY_ENA-1:bits_per_trans-STOP_BITS-PARITY_ENA-DATA_BITS] <= data;
+          if(trans_counter == 0)
+          begin
+            state <= trans;
+
+            //insert start bit
+            reg_data[start_bit-1:0] <= 1'b0;
+
+            //insert stop bits
+            reg_data[bits_per_trans-1:bits_per_trans-STOP_BITS] <= {STOP_BITS{1'b1}};
+
+            //insert data
+            reg_data[bits_per_trans-STOP_BITS-PARITY_ENA-1:bits_per_trans-STOP_BITS-PARITY_ENA-DATA_BITS] <= data;
+          end
           
         end
         //transmit data, actually done in data output process below.
         trans: begin
           state <= trans;
           
-          if(trans_fin == 1'b1) begin
+          if((trans_counter == bits_per_trans-1) && (prev_trans_counter == bits_per_trans-1)) begin
             state <= data_cap;
           end
         end
@@ -221,7 +222,6 @@ module axis_uart_tx #(
   //uart data output positive edge
   always @(posedge uart_clk) begin
     if(uart_rstn == 1'b0) begin
-      trans_fin           <= 0;
       reg_txd             <= 1;
       trans_counter       <= 0;
       prev_trans_counter  <= 0;
@@ -237,10 +237,6 @@ module axis_uart_tx #(
             
             prev_trans_counter  <= trans_counter;
           end
-            
-          if((trans_counter == bits_per_trans-1) && (prev_trans_counter == bits_per_trans-1)) begin
-            trans_fin <= 1'b1;
-          end
           
           //once bits_per_trans-1 hold counter
           if(trans_counter == bits_per_trans-1) begin
@@ -250,7 +246,6 @@ module axis_uart_tx #(
         default: begin
           //default state of counters and data output.
           reg_txd             <= 1;
-          trans_fin           <= 0;
           trans_counter       <= 0;
           prev_trans_counter  <= 0;
         end
