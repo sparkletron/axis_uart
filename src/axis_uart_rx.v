@@ -90,22 +90,23 @@ module axis_uart_rx #(
   //bits per transmission
   localparam integer bits_per_trans = start_bit + DATA_BITS + PARITY_ENA + STOP_BITS;
   //states
+  // start bit detect
+  localparam start_wait   = 3'd1;
   // data capture
-  localparam data_cap     = 3'd1;
+  localparam data_cap     = 3'd2;
   // reduce data
-  localparam data_reduce  = 3'd2;
+  localparam data_reduce  = 3'd3;
   // parity generator
-  localparam parity_gen   = 3'd3;
+  localparam parity_gen   = 3'd4;
   // transmit data
-  localparam trans        = 3'd4;
+  localparam trans        = 3'd5;
   // someone made a whoops
   localparam error        = 0;
-  //uart_states
-  localparam start_wait   = 2'd1;
-  localparam data_at_baud = 2'd3;
   
   //wire_rxd
   wire wire_rxd;
+  //wire_uart_rstn
+  wire wire_uart_rstn;
 
   //data reg
   reg [bits_per_trans-1:0]reg_data;
@@ -116,16 +117,13 @@ module axis_uart_rx #(
   reg r_frame_err;
   //state machine
   reg [2:0]  state = error;
-  reg [1:0]  uart_state = error;
   //data to transmit
   reg [DATA_BITS-1:0] data;
   //counters
   reg [clogb2(bits_per_trans)-1:0]  trans_counter;
   reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
   //previous states
-  reg p_rxd;
-  //transmit done
-  reg trans_fin;
+  reg r_rxd;
 
   //reg to wire
   reg [DATA_BITS-1:0]   r_m_axis_tdata;
@@ -173,17 +171,35 @@ module axis_uart_rx #(
       parity_bit      <= 0;
       r_parity_err    <= 0;
       r_frame_err     <= 0;
+      r_rxd           <= 1'b1;
+      r_uart_hold     <= 1'b1;
     end else begin
+      r_rxd <= wire_rxd;
+
       case (state)
+        start_wait: begin
+          state         <= start_wait;
+          data          <= 0;
+          parity_bit    <= 0;
+          r_uart_hold   <= r_uart_hold;
+
+          // watch for falling edge for start bit
+          if((r_rxd == 1'b1) && (wire_rxd == 1'b0) && (trans_counter == 0)) begin
+            state <= data_cap;
+            r_uart_hold <= 1'b0;
+          end
+        end
         //capture data from interface (rx input below)
         data_cap: begin
           state         <= data_cap;
           data          <= 0;
           parity_bit    <= 0;
+          r_uart_hold   <= r_uart_hold;
           
-          //once we hit trans_fin, we can goto data combine.
-          if(trans_fin == 1'b1) begin
-            state <= data_reduce;
+          //once we hit bits_per_trans-1, we can goto data combine.
+          if((trans_counter == bits_per_trans-1) && (prev_trans_counter == bits_per_trans-1)) begin
+            state       <= data_reduce;
+            r_uart_hold <= 1'b1;
           end
         end
         data_reduce: begin
@@ -236,10 +252,10 @@ module axis_uart_rx #(
         end
         //transmit data, actually done in data output process below.
         trans:
-          state <= data_cap;
+          state <= start_wait;
         //error state, goto data_cap
         default:
-          state <= data_cap;
+          state <= start_wait;
       endcase
     end
   end
@@ -252,9 +268,9 @@ module axis_uart_rx #(
       
       assign wire_rxd = DELAY_rx[DELAY];
       
-      always @(posedge uart_clk) begin
+      always @(negedge uart_clk) begin
         if(uart_rstn == 1'b0) begin
-          DELAY_rx <= 0;
+          DELAY_rx <= ~0;
         end else begin
           DELAY_rx <= {DELAY_rx[DELAY-1:0], rxd};
         end
@@ -263,75 +279,39 @@ module axis_uart_rx #(
       assign wire_rxd = rxd;
     end
   endgenerate
-  
-  //rxd data input posedge
-  always @(posedge uart_clk) begin
+
+  //Sample data, with a aync clear high using r_uart_hold
+  always @(negedge uart_clk or posedge r_uart_hold) begin
     if(uart_rstn == 1'b0) begin
       reg_data            <= 0;
-      uart_state          <= error;
-      p_rxd               <= 1;
       trans_counter       <= 0;
       prev_trans_counter  <= 0;
-      trans_fin           <= 0;
-      r_uart_hold         <= 1;
+    end else if(r_uart_hold == 1'b1) begin
+      trans_counter <= 0;
+      prev_trans_counter <= 0;
     end else begin
-      p_rxd <= wire_rxd;
-      
-      case (state)
-        //once the state machine is in data caputre state, begin data capture when a diff in the line is sampled.
+      // capture data in data_cap state only
+      case(state)
         data_cap: begin
-          case (uart_state)
-            //wait for sync bit (start) to begin capture of data at baud rate
-            start_wait: begin
-              uart_state <= start_wait;
-              
-              //falling edge of wire_rxd is start bit (1 to 0).
-              if((p_rxd == 1'b1) && (wire_rxd == 1'b0)) begin
-                uart_state  <= data_at_baud;
-                r_uart_hold <= 1'b0;
-              end
-            end
-            //once sync'd, caputre data at baud rate
-            data_at_baud: begin
-              uart_state  <= data_at_baud;
-              r_uart_hold <= 1'b0;
-              
-              //on uart enable, capture data... DELAY added if need be.
-              if(uart_ena == 1'b1) begin
-                reg_data[trans_counter] <= wire_rxd;
-            
-                trans_counter <= trans_counter + 1;
-                
-                prev_trans_counter <= trans_counter;
-              end
-              
-              //once we hit bits_per_trans-1, we can goto data combine.
-              if((trans_counter == bits_per_trans-1) && (prev_trans_counter == bits_per_trans-1)) begin
-                trans_fin <= 1'b1;
-              end
-              
-              //once bits_per_trans-1 hold counter
-              if(trans_counter == bits_per_trans-1) begin
-                trans_counter <= bits_per_trans-1;
-              end
-            end
-            default: begin
-              uart_state  <= start_wait;
-              r_uart_hold <= 1'b1;
-            end
-          endcase
+          if(uart_ena == 1'b1) begin
+            reg_data[trans_counter] <= wire_rxd;
+
+            trans_counter <= trans_counter + 1;
+
+            prev_trans_counter <= trans_counter;
+          end
+
+          //once bits_per_trans-1 hold counter
+          if(trans_counter == bits_per_trans-1) begin
+            trans_counter <= bits_per_trans-1;
+          end
         end
-        trans: begin
-          reg_data <= 0;
-        end
-        //default state of counter
         default: begin
-          uart_state          <= start_wait;
-          trans_fin           <= 0;
-          trans_counter       <= 0;
-          prev_trans_counter  <= 0;
+          trans_counter <= 0;
+          prev_trans_counter <= 0;
         end
       endcase
     end
   end
+
 endmodule
