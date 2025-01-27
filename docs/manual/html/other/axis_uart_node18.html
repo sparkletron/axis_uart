@@ -1,21 +1,17 @@
 <!DOCTYPE HTML>
 
-<!--Converted with LaTeX2HTML 2021.2 (Released July 1, 2021) -->
+<!--Converted with LaTeX2HTML 2024 (Released January 1, 2024) -->
 <HTML lang="en">
 <HEAD>
 <TITLE>Module Documentation</TITLE>
-<META NAME="description" CONTENT="Module Documentation">
-<META NAME="keywords" CONTENT="html">
-<META NAME="resource-type" CONTENT="document">
-<META NAME="distribution" CONTENT="global">
 
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
-<META NAME="Generator" CONTENT="LaTeX2HTML v2021.2">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2024">
 
 <LINK REL="STYLESHEET" HREF="html.css">
 
-<LINK REL="next" HREF="axis_uart_node23.html">
+<LINK REL="next" HREF="axis_uart_node28.html">
 <LINK REL="previous" HREF="axis_uart_node15.html">
 <LINK REL="next" HREF="axis_uart_node19.html">
 </HEAD>
@@ -32,7 +28,7 @@
 <A
  HREF="axis_uart_node17.html">
 <IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
-<A ID="tex2html91"
+<A ID="tex2html101"
   HREF="axis_uart_node1.html">
 <IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
 <BR>
@@ -42,7 +38,7 @@
  HREF="html.html">html</A>
 <B> Previous:</B> <A
  HREF="axis_uart_node17.html">cocotb</A>
- &nbsp; <B>  <A ID="tex2html92"
+ &nbsp; <B>  <A ID="tex2html102"
   HREF="axis_uart_node1.html">Contents</A></B> 
 <BR>
 <BR></DIV>
@@ -60,12 +56,6 @@ Module Documentation
 <BR></LI>
 <LI><SPAN  CLASS="textbf">axis_uart_rx</SPAN> Interfaces AXIS to the UART receive line.
 <BR></LI>
-<LI><SPAN  CLASS="textbf">uart_baud_gen</SPAN> Generates a Baud rate clock for the UART based on the input clock using modulo division method.
-The modulo method works by loading the clock speed (in hertz) used for generaton into a register. This register is then
-subtracted from by the desired baud clock (in hertz). Once the counter is depleted the remainder, if it exits, is added
-to the counter plus the original clock speed and the operation repeats. Each remiander is added back to the counter. This
-allows non-even divisions to evetually average out to the target rate.
-<BR></LI>
 <LI><SPAN  CLASS="textbf">axis_uart Wrapper</SPAN> for all of the above modules to create a singular device to interface with.
 <BR></LI>
 </UL>
@@ -76,14 +66,24 @@ allows non-even divisions to evetually average out to the target rate.
 <A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
 
 <UL CLASS="ChildLinks">
-<LI><A ID="tex2html93"
+<LI><A ID="tex2html103"
   HREF="axis_uart_node19.html"><a href="../files/axis_uart_rx-v.html">axis_uart_rx</a></A>
-<LI><A ID="tex2html94"
+<LI><A ID="tex2html104"
   HREF="axis_uart_node20.html"><a href="../files/axis_uart_tx-v.html">axis_uart_tx</a></A>
-<LI><A ID="tex2html95"
+<LI><A ID="tex2html105"
   HREF="axis_uart_node21.html"><a href="../files/axis_uart-v.html">axis_uart</a></A>
-<LI><A ID="tex2html96"
-  HREF="axis_uart_node22.html"><a href="../files/uart_baud_gen-v.html">uart_baud_gen</a></A>
+<LI><A ID="tex2html106"
+  HREF="axis_uart_node22.html"><a href="../files2/tb_cocotb_full-v.html">tb_cocotb_full verilog</a></A>
+<LI><A ID="tex2html107"
+  HREF="axis_uart_node23.html"><a href="../files2/tb_cocotb_full-py.html">tb_cocotb_full python</a></A>
+<LI><A ID="tex2html108"
+  HREF="axis_uart_node24.html"><a href="../files2/tb_cocotb_rx-v.html">tb_cocotb_rx verilog</a></A>
+<LI><A ID="tex2html109"
+  HREF="axis_uart_node25.html"><a href="../files2/tb_cocotb_rx-py.html">tb_cocotb_rx python</a></A>
+<LI><A ID="tex2html110"
+  HREF="axis_uart_node26.html"><a href="../files2/tb_cocotb_tx-v.html">tb_cocotb_tx verilog</a></A>
+<LI><A ID="tex2html111"
+  HREF="axis_uart_node27.html"><a href="../files2/tb_cocotb_tx-py.html">tb_cocotb_tx python</a></A>
 </UL>
 <!--End of Table of Child-Links-->
 <BR><HR>

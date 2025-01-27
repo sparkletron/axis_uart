@@ -83,7 +83,7 @@ Home Page: ../html/other/html.html
 Source Folder: ../../../src
    Name: axis_uart
 
-Source Folder1: ../../../src
+Source Folder 2: ../../../tb
    Name: tb_axis_uart
 
 

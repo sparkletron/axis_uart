@@ -114,15 +114,16 @@ module axis_uart #(
    *
    * Generates TX BAUD rate for UART modules using modulo divide method.
    */
-  uart_baud_gen #(
-    .BAUD_CLOCK_SPEED(BAUD_CLOCK_SPEED),
-    .BAUD_RATE(BAUD_RATE),
+  mod_clock_ena_gen #(
+    .CLOCK_SPEED(BAUD_CLOCK_SPEED),
+    .START_AT_ZERO(1),
     .DELAY(TX_BAUD_DELAY)
   ) uart_baud_gen_tx (
-    .uart_clk(uart_clk),
-    .uart_rstn(uart_rstn),
-    .uart_hold(1'b0),
-    .uart_ena(uart_ena_tx)
+    .clk(uart_clk),
+    .rstn(uart_rstn),
+    .hold(1'b0),
+    .rate(BAUD_RATE),
+    .ena(uart_ena_tx)
   );
   
   /*
@@ -130,15 +131,16 @@ module axis_uart #(
    *
    * Generates RX BAUD rate for UART modules using modulo divide method.
    */
-  uart_baud_gen #(
-    .BAUD_CLOCK_SPEED(BAUD_CLOCK_SPEED),
-    .BAUD_RATE(BAUD_RATE),
+  mod_clock_ena_gen #(
+    .CLOCK_SPEED(BAUD_CLOCK_SPEED),
+    .START_AT_ZERO(0),
     .DELAY(RX_BAUD_DELAY)
   ) uart_baud_gen_rx (
-    .uart_clk(uart_clk),
-    .uart_rstn(uart_rstn),
-    .uart_hold(uart_hold_rx),
-    .uart_ena(uart_ena_rx)
+    .clk(uart_clk),
+    .rstn(uart_rstn),
+    .hold(uart_hold_rx),
+    .rate(BAUD_RATE),
+    .ena(uart_ena_rx)
   );
   
   /*

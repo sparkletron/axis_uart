@@ -9,13 +9,11 @@ filesets:
       - src/axis_uart.v
       - src/axis_uart_rx.v
       - src/axis_uart_tx.v
-      - src/uart_baud_gen.v
     file_type: verilogSource
   
   tb:
     files:
       - tb/tb_uart.v
-      - tb/tb_uart_baud_gen.v
       - tb/tb_uart_rx.v
       - tb/tb_uart_tx.v
     file_type: verilogSource
@@ -35,13 +33,9 @@ filesets:
       - tb/tb_cocotb_tx.py : {file_type : user, copyto : .}
       - tb/tb_cocotb_tx.v : { file_type: verilogSource }
 
-  tb_cocotb_baud:
-    files:
-      - tb/tb_cocotb_baud.py : {file_type : user, copyto : .}
-      - tb/tb_cocotb_baud.v : { file_type: verilogSource }
-
   dep:
     depend:
+      - AFRL:clock:mod_clock_ena_gen:1.0.0
       - AFRL:utility:helper:1.0.0
       
   dep_tb:
@@ -102,15 +96,6 @@ targets:
       - OUT_FILE_NAME=out_8bit_count.bin
       - RAND_READY=1
       - FIFO_DEPTH
-    
-  sim_baud:
-    <<: *sim
-    description: Simulate only the baud rate generator.
-    toplevel: tb_uart_baud
-    parameters:
-      - IN_FILE_NAME
-      - OUT_FILE_NAME
-      - RAND_READY
     
   sim_rx:
     <<: *sim
@@ -188,24 +173,6 @@ targets:
       - DATA_BITS
       - DELAY
       - PARITY_TYPE
-
-  sim_cocotb_baud:
-    <<: *default
-    description: Cocotb unit tests
-    flow: sim
-    flow_options:
-      tool: icarus
-      cocotb_module: tb_cocotb_baud
-      timescale: 1ns/1ns
-      vcs_options: [-timescale=1ns/1ns]
-    filesets_append: [tb_cocotb_baud]
-    toplevel: tb_cocotb
-    parameters:
-      - FIFO_DEPTH
-      - BUS_WIDTH
-      - USER_WIDTH
-      - DEST_WIDTH
-      - COUNT_WIDTH
 
 parameters:
   PARITY_ENA:

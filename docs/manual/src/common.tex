@@ -56,7 +56,6 @@ This core is made up of other cores that are documented in detail in there sourc
 \begin{itemize}
   \item \textbf{axis\_uart\_tx} Interface with UART TX and present the data over AXIS interface (see core for documentation).
   \item \textbf{axis\_uart\_rx} Interface with UART RX and present the data over AXIS interface (see core for documentation).
-  \item \textbf{uart\_baud\_gen} Generates BAUD clock for RX and TX based on modulo divide method (see core for documentation).
 \end{itemize}
 
 \section{Building}
@@ -117,11 +116,6 @@ Future simulations will use cocotb. This feature is not yet implemented.
 \begin{itemize}
 \item \textbf{axis\_uart\_tx} Interfaces AXIS to the UART transmit line.\\
 \item \textbf{axis\_uart\_rx} Interfaces AXIS to the UART receive line.\\
-\item \textbf{uart\_baud\_gen} Generates a Baud rate clock for the UART based on the input clock using modulo division method.
-The modulo method works by loading the clock speed (in hertz) used for generaton into a register. This register is then
-subtracted from by the desired baud clock (in hertz). Once the counter is depleted the remainder, if it exits, is added
-to the counter plus the original clock speed and the operation repeats. Each remiander is added back to the counter. This
-allows non-even divisions to evetually average out to the target rate.\\
 \item \textbf{axis\_uart Wrapper} for all of the above modules to create a singular device to interface with.\\
 \end{itemize}
 
