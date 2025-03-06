@@ -104,10 +104,34 @@ There are a few different simulations that can be run for this core.
 \subsection{iverilog}
 \par
 iverilog is used for simple test benches for quick verification, visually, of the core.
+\begin{itemize}
+  \item \textbf{sim} Standard simulation of TX/RX looped.
+  \item \textbf{sim\_rx} Simulation of receive only.
+  \item \textbf{sim\_tx} Simulation of transmit only.
+\end{itemize}
 
 \subsection{cocotb}
 \par
-Future simulations will use cocotb. This feature is not yet implemented.
+To use the cocotb tests you must install the following python libraries.
+\begin{lstlisting}[language=bash]
+  $ pip install cocotb
+  $ pip install cocotbext-axi
+\end{lstlisting}
+
+Each module has a cocotb based simulation. These use the cocotb extensions made by Alex.
+The two extensions used are cocotbext-axi and cocotbext-uart. These provide outside verification
+of the implimentation. These tests consist of 3 different fusesoc targets.
+
+\begin{itemize}
+  \item \textbf{sim\_cocotb\_full} Standard simulation of TX/RX passing data to and from cocotbexts.
+  \item \textbf{sim\_cocotb\_rx} Simulation of data receive using cocotbext.
+  \item \textbf{sim\_cocotb\_tx} Simulation of data transmit using cocotbext.
+\end{itemize}
+
+Then you must use the cocotb sim target. The targets above can be run with various bus and fifo parameters.
+\begin{lstlisting}[language=bash]
+  $ fusesoc run --target AFRL:device_converter:axis_uart:1.0.0
+\end{lstlisting}
 
 \newpage
 
@@ -116,7 +140,7 @@ Future simulations will use cocotb. This feature is not yet implemented.
 \begin{itemize}
 \item \textbf{axis\_uart\_tx} Interfaces AXIS to the UART transmit line.\\
 \item \textbf{axis\_uart\_rx} Interfaces AXIS to the UART receive line.\\
-\item \textbf{axis\_uart Wrapper} for all of the above modules to create a singular device to interface with.\\
+\item \textbf{axis\_uart} Wrapper for all of the above modules to create a singular device to interface with.\\
 \end{itemize}
 
 

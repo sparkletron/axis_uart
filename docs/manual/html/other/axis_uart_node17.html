@@ -48,7 +48,37 @@ cocotb</A>
 </H2>
 
 <P>
-Future simulations will use cocotb. This feature is not yet implemented.
+To use the cocotb tests you must install the following python libraries.
+<TABLE FRAME="VOID" CELLPADDING="4"><TR><TD>
+<PRE>
+  $ pip install cocotb
+  $ pip install cocotbext-axi
+</PRE>
+</TD></TR></TABLE>
+
+<P>
+Each module has a cocotb based simulation. These use the cocotb extensions made by Alex.
+The two extensions used are cocotbext-axi and cocotbext-uart. These provide outside verification
+of the implimentation. These tests consist of 3 different fusesoc targets.
+
+<P>
+
+<UL>
+<LI><SPAN  CLASS="textbf">sim_cocotb_full</SPAN> Standard simulation of TX/RX passing data to and from cocotbexts.
+</LI>
+<LI><SPAN  CLASS="textbf">sim_cocotb_rx</SPAN> Simulation of data receive using cocotbext.
+</LI>
+<LI><SPAN  CLASS="textbf">sim_cocotb_tx</SPAN> Simulation of data transmit using cocotbext.
+</LI>
+</UL>
+
+<P>
+Then you must use the cocotb sim target. The targets above can be run with various bus and fifo parameters.
+<TABLE FRAME="VOID" CELLPADDING="4"><TR><TD>
+<PRE>
+  $ fusesoc run --target AFRL:device_converter:axis_uart:1.0.0
+</PRE>
+</TD></TR></TABLE>
 
 <P>
 <P>
