@@ -116,11 +116,11 @@ module axis_uart #(
    */
   mod_clock_ena_gen #(
     .CLOCK_SPEED(BAUD_CLOCK_SPEED),
-    .START_AT_ZERO(1),
     .DELAY(TX_BAUD_DELAY)
   ) uart_baud_gen_tx (
     .clk(uart_clk),
     .rstn(uart_rstn),
+    .start0(1'b1),
     .hold(1'b0),
     .rate(BAUD_RATE),
     .ena(uart_ena_tx)
@@ -133,11 +133,11 @@ module axis_uart #(
    */
   mod_clock_ena_gen #(
     .CLOCK_SPEED(BAUD_CLOCK_SPEED),
-    .START_AT_ZERO(0),
     .DELAY(RX_BAUD_DELAY)
   ) uart_baud_gen_rx (
     .clk(uart_clk),
     .rstn(uart_rstn),
+    .start0(1'b0),
     .hold(uart_hold_rx),
     .rate(BAUD_RATE),
     .ena(uart_ena_rx)
