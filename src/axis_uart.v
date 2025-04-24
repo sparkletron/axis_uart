@@ -104,7 +104,7 @@ module axis_uart #(
   
   wire uart_ena_tx;
   wire uart_ena_rx;
-  wire uart_hold_rx;
+  wire uart_clr_rx_clk;
   
   assign rts = 1'b1;
   
@@ -121,6 +121,7 @@ module axis_uart #(
     .clk(uart_clk),
     .rstn(uart_rstn),
     .start0(1'b1),
+    .clr(1'b0),
     .hold(1'b0),
     .rate(BAUD_RATE),
     .ena(uart_ena_tx)
@@ -138,7 +139,8 @@ module axis_uart #(
     .clk(uart_clk),
     .rstn(uart_rstn),
     .start0(1'b0),
-    .hold(uart_hold_rx),
+    .clr(uart_clr_rx_clk),
+    .hold(1'b0),
     .rate(BAUD_RATE),
     .ena(uart_ena_rx)
   );
@@ -188,7 +190,7 @@ module axis_uart #(
     .uart_clk(uart_clk),
     .uart_rstn(uart_rstn),
     .uart_ena(uart_ena_rx),
-    .uart_hold(uart_hold_rx),
+    .uart_hold(uart_clr_rx_clk),
     .rxd(rx)
   );
  

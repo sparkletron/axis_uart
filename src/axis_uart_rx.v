@@ -58,7 +58,7 @@
  *   uart_clk       - Clock used for BAUD rate generation
  *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
  *   uart_ena       - Enable UART data processing from RX.
- *   uart_hold      - Output to hold clock till in receive state.
+ *   uart_hold      - Output to hold back clock in reset state till uart is in receive state.
  *   rxd            - receive for UART (input from TX)
  */
 module axis_uart_rx #(
