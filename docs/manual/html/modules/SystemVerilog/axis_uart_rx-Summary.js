@@ -1,1 +1,1 @@
-﻿NDFramePage.OnPageTitleLoaded("SystemVerilogModule:axis_uart_rx","axis_uart_rx");NDSummary.OnSummaryLoaded("SystemVerilogModule:axis_uart_rx",[["SystemVerilog","SystemVerilog"]],[["Modules","Module"]],[[42,0,0,"axis_uart_rx"]]);
+﻿NDFramePage.OnPageTitleLoaded("SystemVerilogModule:axis_uart_rx","axis_uart_rx");NDSummary.OnSummaryLoaded("SystemVerilogModule:axis_uart_rx",[["SystemVerilog","SystemVerilog"]],[["Modules","Module"]],[[1,0,0,"axis_uart_rx"]]);
