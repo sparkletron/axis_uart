@@ -45,6 +45,7 @@
  *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
  *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
  *   DELAY            - Delay in rx data input.
+ *   BUS_WIDTH        - BUS_WIDTH for axis bus in bytes.
  *
  * Ports:
  *
@@ -66,14 +67,15 @@ module axis_uart_rx #(
     parameter PARITY_TYPE = 0,
     parameter STOP_BITS   = 1,
     parameter DATA_BITS   = 8,
-    parameter DELAY       = 0
+    parameter DELAY       = 0,
+    parameter BUS_WIDTH   = 1
   ) 
   (
     input                       aclk,
     input                       arstn,
     output                      parity_err,
     output                      frame_err,
-    output  [DATA_BITS-1:0]     m_axis_tdata,
+    output  [BUS_WIDTH*8-1:0]   m_axis_tdata,
     output                      m_axis_tvalid,
     input                       m_axis_tready,
     input                       uart_clk,
@@ -94,22 +96,24 @@ module axis_uart_rx #(
   localparam start_wait   = 3'd1;
   // data capture
   localparam data_cap     = 3'd2;
-  // reduce data
-  localparam data_reduce  = 3'd3;
   // parity generator
-  localparam parity_gen   = 3'd4;
+  localparam parity_gen   = 3'd3;
   // transmit data
-  localparam trans        = 3'd5;
+  localparam trans        = 3'd4;
   // someone made a whoops
   localparam error        = 0;
+  //DATA BUS SIZE FOR BITS PER TRANS
+  localparam TRANS_WIDTH = 2**clogb2(bits_per_trans)/8;
   
-  //wire_rxd
-  wire wire_rxd;
+  //s_rxd
+  wire s_rxd;
   //wire_uart_rstn
   wire wire_uart_rstn;
+  // SIPO counter value for keeping track of the amount of data being sent.
+  wire [BUS_WIDTH*8-1:0]  sipo_counter;
+  //data from SIPO
+  wire [bits_per_trans-1:0] s_data;
 
-  //data reg
-  reg [bits_per_trans-1:0]reg_data;
   //parity bit storage
   reg parity_bit;
   //parity error storage
@@ -119,14 +123,15 @@ module axis_uart_rx #(
   reg [2:0]  state = error;
   //data to transmit
   reg [DATA_BITS-1:0] data;
-  //counters
-  reg [clogb2(bits_per_trans)-1:0]  trans_counter;
-  reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
-  //previous states
-  reg r_rxd;
+  //positive sample of the rxd signal
+  reg r_ps_rxd;
+  //negedge sample of the rxd signal
+  reg r_ns_rxd;
+  //SIPO control
+  reg r_load;
 
   //reg to wire
-  reg [DATA_BITS-1:0]   r_m_axis_tdata;
+  reg [BUS_WIDTH*8-1:0] r_m_axis_tdata;
   reg                   r_m_axis_tvalid;
   reg                   r_uart_hold;
 
@@ -148,7 +153,7 @@ module axis_uart_rx #(
       case (state)
         //once the state machine is in transmisson state, begin data output
         trans: begin
-          r_m_axis_tdata  <= data;
+          r_m_axis_tdata  <= {{BUS_WIDTH*8-DATA_BITS{1'b0}}, data};
           r_m_axis_tvalid <= 1'b1;
         end
         //are we ready kids???? EYYY EYYY CAPTIAN....OHHHHH WHO LIVES IN A PINEAPPLE UNDER THE SEA.
@@ -159,33 +164,32 @@ module axis_uart_rx #(
             r_m_axis_tvalid <= 0;
           end
         end
-        endcase
+      endcase
     end
   end
             
   //data processing
   always @(posedge aclk) begin
     if(arstn == 1'b0) begin
-      state           <= error;
+      state           <= start_wait;
       data            <= 0;
       parity_bit      <= 0;
       r_parity_err    <= 0;
       r_frame_err     <= 0;
-      r_rxd           <= 1'b1;
       r_uart_hold     <= 1'b1;
+      r_load          <= 1'b1;
     end else begin
-      r_rxd <= wire_rxd;
-
       case (state)
         start_wait: begin
           state         <= start_wait;
           data          <= 0;
           parity_bit    <= 0;
+          r_load        <= 1'b1;
           r_uart_hold   <= r_uart_hold;
 
           // watch for falling edge for start bit
-          if((r_rxd == 1'b1) && (wire_rxd == 1'b0) && (trans_counter == 0)) begin
-            state <= data_cap;
+          if((r_ps_rxd == 1'b1) && (s_rxd == 1'b0) && (sipo_counter == 0)) begin
+            state       <= data_cap;
             r_uart_hold <= 1'b0;
           end
         end
@@ -194,29 +198,30 @@ module axis_uart_rx #(
           state         <= data_cap;
           data          <= 0;
           parity_bit    <= 0;
+          r_load        <= 1'b0;
           r_uart_hold   <= r_uart_hold;
           
-          //once we hit bits_per_trans-1, we can goto data combine.
-          if((trans_counter == bits_per_trans-1) && (prev_trans_counter == bits_per_trans-1)) begin
-            state       <= data_reduce;
+          //once we hit bits_per_trans, we can goto data combine.
+          if(sipo_counter == bits_per_trans)
+          begin
+            state <= (PARITY_ENA >= 1'b1 ? parity_gen : trans);
+
+            data <= s_data[start_bit+DATA_BITS-1:start_bit];
+
+            parity_bit <= s_data[bits_per_trans-STOP_BITS-1];
+
+            //pull stop bit, if it is zero, frame error.
+            r_frame_err <= ~s_data[bits_per_trans-1];
+
+            r_load      <= 1'b1;
             r_uart_hold <= 1'b1;
           end
-        end
-        data_reduce: begin
-          state <= (PARITY_ENA >= 1'b1 ? parity_gen : trans);
-          
-          data <= reg_data[start_bit+DATA_BITS-1:start_bit];
-          
-          parity_bit <= reg_data[bits_per_trans-STOP_BITS-1];
-
-          //pull stop bit, if it is zero, frame error.
-          r_frame_err <= ~reg_data[bits_per_trans-1];
         end
         //compare to parity bit of incomming data and store in command
         parity_gen: begin
           state <= trans;
-          
-          r_parity_err <= 1'b0;
+
+          r_parity_err  <= 1'b0;
 
           //check if parity matches, if not do not output data.
           case (PARITY_TYPE)
@@ -224,28 +229,24 @@ module axis_uart_rx #(
             1:
               if(^data ^ 1'b1 ^ parity_bit)
               begin
-                state <= data_cap;
                 r_parity_err <= 1'b1;
               end
             //mark parity
             2:
               if(parity_bit != 1'b1)
               begin
-                state <= data_cap;
                 r_parity_err <= 1'b1;
               end
             //space parity
             3:
               if(parity_bit != 1'b0)
               begin
-                state <= data_cap;
                 r_parity_err <= 1'b1;
               end
             //even parity
             default:
               if(^data ^ parity_bit)
               begin
-                state <= data_cap;
                 r_parity_err <= 1'b1;
               end
           endcase
@@ -259,6 +260,17 @@ module axis_uart_rx #(
       endcase
     end
   end
+
+  //always sample rx data on negedge clock, feed into SIPO which always does posedge
+  always @(negedge uart_clk)
+  begin
+    r_ns_rxd <= s_rxd;
+  end
+
+  always @(posedge uart_clk)
+  begin
+    r_ps_rxd <= s_rxd;
+  end
   
   //DELAY input of data
   generate
@@ -266,9 +278,9 @@ module axis_uart_rx #(
       //DELAYs
       reg [DELAY:0] DELAY_rx;
       
-      assign wire_rxd = DELAY_rx[DELAY];
+      assign s_rxd = DELAY_rx[DELAY];
       
-      always @(negedge uart_clk) begin
+      always @(posedge uart_clk) begin
         if(uart_rstn == 1'b0) begin
           DELAY_rx <= ~0;
         end else begin
@@ -276,42 +288,22 @@ module axis_uart_rx #(
         end
       end
     end else begin
-      assign wire_rxd = rxd;
+      assign s_rxd = rxd;
     end
   endgenerate
 
-  //Sample data, with a aync clear high using r_uart_hold
-  always @(negedge uart_clk or posedge r_uart_hold) begin
-    if(uart_rstn == 1'b0) begin
-      reg_data            <= 0;
-      trans_counter       <= 0;
-      prev_trans_counter  <= 0;
-    end else if(r_uart_hold == 1'b1) begin
-      trans_counter <= 0;
-      prev_trans_counter <= 0;
-    end else begin
-      // capture data in data_cap state only
-      case(state)
-        data_cap: begin
-          if(uart_ena == 1'b1) begin
-            reg_data[trans_counter] <= wire_rxd;
-
-            trans_counter <= trans_counter + 1;
-
-            prev_trans_counter <= trans_counter;
-          end
-
-          //once bits_per_trans-1 hold counter
-          if(trans_counter == bits_per_trans-1) begin
-            trans_counter <= bits_per_trans-1;
-          end
-        end
-        default: begin
-          trans_counter <= 0;
-          prev_trans_counter <= 0;
-        end
-      endcase
-    end
-  end
+  sipo #(
+    .BUS_WIDTH(TRANS_WIDTH),
+    .COUNT_AMOUNT(bits_per_trans)
+  ) inst_sipo (
+    .clk(uart_clk),
+    .rstn(uart_rstn),
+    .ena(uart_ena),
+    .rev(1'b1),
+    .load(r_load),
+    .pdata(s_data),
+    .sdata(r_ns_rxd),
+    .dcount(sipo_counter)
+  );
 
 endmodule
