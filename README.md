@@ -17,9 +17,10 @@
 
 ### Version
 #### Current
-  - V1.0.0 - initial release
+  - v1.5.0 - update to SIPO/PISO core for serial in/out.
 
 #### Previous
+  - V1.0.0 - initial release
   - none
 
 ### DOCUMENTATION
@@ -27,13 +28,6 @@
 
   - [axis_uart.pdf](docs/manual/axis_uart.pdf)
   - [github page](https://johnathan-convertino-afrl.github.io/axis_uart/)
-
-### DEPENDENCIES
-#### Build
-  - AFRL:utility:helper:1.0.0
-  
-#### Simulation
-  - AFRL:simulation:axis_stimulator
 
 ### PARAMETERS
 
@@ -47,6 +41,7 @@
   * RX_BAUD_DELAY     - Delay in rx baud enable. This will delay when we sample a bit (default is midpoint when rx delay is 0).
   * TX_DELAY          - Delay in tx data output. Delays the time to output of the data.
   * TX_BAUD_DELAY     - Delay in tx baud enable. This will delay the time the bit output starts.
+  * BUS_WIDTH         - AXIS data width in bytes.
 
 ### COMPONENTS
 #### SRC
@@ -54,14 +49,14 @@
 * axis_uart.v
 * axis_uart_tx.v
 * axis_uart_rx.v
-* uart_baud_gen.v
   
 #### TB
 
-* tb_uart.v
 * tb_uart_tx.v
 * tb_uart_rx.v
-* tb_uart_baud_gen.v
+* tb_cocotb_rx
+* tb_cocotb_tx
+* tb_cocotb_full
   
 ### FUSESOC
 
@@ -72,11 +67,9 @@
 
 * RUN WITH: (fusesoc run --target=sim VENDER:CORE:NAME:VERSION)
   - default (for IP integration builds)
-  - sim
-  - sim_rand_data
-  - sim_rand_ready_rand_data
-  - sim_8bit_count_data
-  - sim_rand_ready_8bit_count_data
-  - sim_baud
+  - sim_cocotb_full
+  - sim_cocotb_rx
+  - sim_cocotb_tx
   - sim_rx
   - sim_tx
+
