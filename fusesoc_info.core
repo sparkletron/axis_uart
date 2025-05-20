@@ -13,7 +13,6 @@ filesets:
   
   tb:
     files:
-      - tb/tb_uart.v
       - tb/tb_uart_rx.v
       - tb/tb_uart_tx.v
     file_type: verilogSource
@@ -37,6 +36,8 @@ filesets:
     depend:
       - AFRL:clock:mod_clock_ena_gen:1.1.1
       - AFRL:utility:helper:1.0.0
+      - AFRL:simple:piso:1.0.0
+      - AFRL:simple:sipo:1.0.0
       
   dep_tb:
     depend:
@@ -47,73 +48,20 @@ targets:
   default: &default
     description: Default for IP intergration.
     filesets: [src, dep]
-  
-  sim: &sim
+
+  sim_rx:
     <<: *default
-    description: Base simulation using icarus as default.
+    description: Simulate only the rx block.
     default_tool: icarus
     filesets_append: [tb, dep_tb]
-    toplevel: tb_uart
-    hooks:
-      post_run: ["tool_icarus ? (file_check_icarus)"]
-    parameters:
-      - IN_FILE_NAME
-      - OUT_FILE_NAME
-      - RAND_READY
-
-  sim_rand_data:
-    <<: *sim
-    description: Use random data as sim input.
-    parameters:
-      - IN_FILE_NAME=random.bin
-      - OUT_FILE_NAME=out_random.bin
-      - RAND_READY
-      - FIFO_DEPTH
-      
-  sim_rand_ready_rand_data:
-    <<: *sim
-    description: Use random data with a random ready as sim input.
-    parameters:
-      - IN_FILE_NAME=random.bin
-      - OUT_FILE_NAME=out_random.bin
-      - RAND_READY=1
-      - FIFO_DEPTH
-      
-  sim_8bit_count_data:
-    <<: *sim
-    description: Use counter data as sim input.
-    parameters:
-      - IN_FILE_NAME=8bit_count.bin
-      - OUT_FILE_NAME=out_8bit_count.bin
-      - RAND_READY
-      - FIFO_DEPTH
-  
-  sim_rand_ready_8bit_count_data:
-    <<: *sim
-    description: Use counter data with a random ready as sim input.
-    parameters:
-      - IN_FILE_NAME=8bit_count.bin
-      - OUT_FILE_NAME=out_8bit_count.bin
-      - RAND_READY=1
-      - FIFO_DEPTH
-    
-  sim_rx:
-    <<: *sim
-    description: Simulate only the rx block.
     toplevel: tb_uart_rx
-    parameters:
-      - IN_FILE_NAME
-      - OUT_FILE_NAME
-      - RAND_READY
     
   sim_tx:
-    <<: *sim
+    <<: *default
     description: Simulate only the tx block.
+    default_tool: icarus
+    filesets_append: [tb, dep_tb]
     toplevel: tb_uart_tx
-    parameters:
-      - IN_FILE_NAME
-      - OUT_FILE_NAME
-      - RAND_READY
 
   sim_cocotb_full:
     <<: *default

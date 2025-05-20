@@ -45,6 +45,7 @@
  *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
  *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
  *   DELAY            - Delay in tx data output. Delays the time to output of the data.
+ *   BUS_WIDTH        - BUS_WIDTH for axis bus in bytes.
  *
  * Ports:
  *
@@ -56,6 +57,7 @@
  *   uart_clk       - Clock used for BAUD rate generation
  *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
  *   uart_ena       - When active high enable UART transmit state.
+ *   uart_hold      - Output to hold back clock in reset state till uart is in transmit state.
  *   txd            - transmit for UART (output to RX)
  */
 module tb_cocotb #(
@@ -63,18 +65,20 @@ module tb_cocotb #(
     parameter PARITY_TYPE = 1,
     parameter STOP_BITS   = 1,
     parameter DATA_BITS   = 8,
-    parameter DELAY       = 0
+    parameter DELAY       = 0,
+    parameter BUS_WIDTH   = 1
   )
   (
-    input                   aclk,
-    input                   arstn,
-    input   [DATA_BITS-1:0] s_axis_tdata,
-    input                   s_axis_tvalid,
-    output                  s_axis_tready,
-    input                   uart_clk,
-    input                   uart_rstn,
-    input                   uart_ena,
-    output                  txd
+    input                     aclk,
+    input                     arstn,
+    input  [BUS_WIDTH*8-1:0]  s_axis_tdata,
+    input                     s_axis_tvalid,
+    output                    s_axis_tready,
+    input                     uart_clk,
+    input                     uart_rstn,
+    input                     uart_ena,
+    output                    uart_hold,
+    output                    txd
   );
   // fst dump command
   initial begin
@@ -91,11 +95,12 @@ module tb_cocotb #(
    * Device under test, axis_uart_tx
    */
   axis_uart_tx #(
-    .PARITY_ENA(0),
-    .PARITY_TYPE(1),
-    .STOP_BITS(1),
-    .DATA_BITS(8),
-    .DELAY(0)
+    .PARITY_ENA(PARITY_ENA),
+    .PARITY_TYPE(PARITY_TYPE),
+    .STOP_BITS(STOP_BITS),
+    .DATA_BITS(DATA_BITS),
+    .DELAY(DELAY),
+    .BUS_WIDTH(BUS_WIDTH)
   ) dut (
     .aclk(aclk),
     .arstn(arstn),
@@ -105,6 +110,7 @@ module tb_cocotb #(
     .uart_clk(uart_clk),
     .uart_rstn(uart_rstn),
     .uart_ena(uart_ena),
+    .uart_hold(uart_hold),
     .txd(txd)
   );
   

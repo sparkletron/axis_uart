@@ -93,7 +93,7 @@ async def single_word(dut):
     dut.uart_ena.value = 1
 
     for x in range(0, 256):
-        data = x.to_bytes(length = 1, byteorder='little') * int(dut.DATA_BITS.value/8)
+        data = x.to_bytes(length = 1, byteorder='little') * int(dut.BUS_WIDTH.value)
         tx_frame = AxiStreamFrame(data, tx_complete=Event())
 
         await axis_source.send(tx_frame)

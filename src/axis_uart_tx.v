@@ -45,6 +45,7 @@
  *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
  *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
  *   DELAY            - Delay in tx data output. Delays the time to output of the data.
+ *   BUS_WIDTH        - BUS_WIDTH for axis bus in bytes.
  *
  * Ports:
  *
@@ -56,6 +57,7 @@
  *   uart_clk       - Clock used for BAUD rate generation
  *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
  *   uart_ena       - When active high enable UART transmit state.
+ *   uart_hold      - Output to hold back clock in reset state till uart is in transmit state.
  *   txd            - transmit for UART (output to RX)
  */
 module axis_uart_tx #(
@@ -63,18 +65,20 @@ module axis_uart_tx #(
     parameter PARITY_TYPE = 1,
     parameter STOP_BITS   = 1,
     parameter DATA_BITS   = 8,
-    parameter DELAY       = 0
+    parameter DELAY       = 0,
+    parameter BUS_WIDTH   = 1
   ) 
   (
-    input                   aclk,
-    input                   arstn,
-    input   [DATA_BITS-1:0] s_axis_tdata,
-    input                   s_axis_tvalid,
-    output                  s_axis_tready,
-    input                   uart_clk,
-    input                   uart_rstn,
-    input                   uart_ena,
-    output                  txd
+    input                     aclk,
+    input                     arstn,
+    input  [BUS_WIDTH*8-1:0]  s_axis_tdata,
+    input                     s_axis_tvalid,
+    output                    s_axis_tready,
+    input                     uart_clk,
+    input                     uart_rstn,
+    input                     uart_ena,
+    output                    uart_hold,
+    output                    txd
   );
   
   `include "util_helper_math.vh"
@@ -94,56 +98,74 @@ module axis_uart_tx #(
   localparam trans        = 3'd4;
   // someone made a whoops
   localparam error        = 3'd0;
+  //DATA BUS SIZE FOR BITS PER TRANS
+  localparam TRANS_WIDTH = 2**clogb2(bits_per_trans)/8;
 
-  //data reg
-  reg [bits_per_trans-1:0]reg_data;
-  //parity bit storage
-  reg parity_bit;
+  //data reg for generated serial data
+  reg [bits_per_trans-1:0]r_tx_data;
   //state machine
   reg [2:0]  state = error;
-  //incoming data to transmit
-  reg [DATA_BITS-1:0] data;
-  //counters
-  reg [clogb2(bits_per_trans)-1:0]  trans_counter;
-  reg [clogb2(bits_per_trans)-1:0]  prev_trans_counter;
-  //Tx 
-  reg reg_txd;
-
+  //Register axis data to transmit later
+  reg [DATA_BITS-1:0] r_data;
+  //Register axis valid for uart clock domain state machine start
+  reg r_s_axis_tvalid;
+  // Hold UART clock when not in transmit state.
+  reg r_uart_hold;
+  // Load values into piso when ready to transmit.
+  reg r_load;
+  // PISO transmit output
+  wire s_txd;
+  // PISO counter value for keeping track of the amount of data being sent.
+  wire [BUS_WIDTH*8-1:0]  piso_counter;
   
   assign s_axis_tready = (state == data_cap ? arstn : 0);
+
+  assign uart_hold = r_uart_hold;
   
   //axis data input
   always @(posedge aclk) begin
     if(arstn == 1'b0) begin
-      data <= 0;
+      r_data <= 0;
+      r_s_axis_tvalid <= 1'b0;
     end else begin
-      data <= data;
+      r_data <= r_data;
+      r_s_axis_tvalid <= r_s_axis_tvalid;
       
       case (state)
         data_cap:
+        begin
           if(s_axis_tvalid == 1'b1)
-            data <= s_axis_tdata;
+          begin
+            r_data <= s_axis_tdata[DATA_BITS-1:0];
+            r_s_axis_tvalid <= s_axis_tvalid;
+          end
+        end
         trans:
-          data <= 0;
+        begin
+          r_data <= 0;
+          r_s_axis_tvalid <= 1'b0;
+        end
       endcase
     end
   end
   
   //data processing
-  always @(posedge aclk) begin
-    if(arstn == 1'b0) begin
+  always @(posedge uart_clk) begin
+    if(uart_rstn == 1'b0) begin
       state       <= error;
-      parity_bit  <= 0;
-      reg_data    <= 0;
+      r_tx_data   <= 0;
+
+      r_uart_hold <= 1'b1;
+      r_load      <= 1'b0;
     end else begin
       case (state)
         //capture data from axis interface
         data_cap: begin
           state       <= data_cap;
-          reg_data    <= 0;
-          parity_bit  <= 0;
+          r_tx_data   <= 0;
+          r_uart_hold <= 1'b1;
           
-          if(s_axis_tvalid == 1'b1) begin
+          if(r_s_axis_tvalid == 1'b1) begin
             state <= (PARITY_ENA >= 1 ? parity_gen : process);
           end
         end
@@ -154,41 +176,49 @@ module axis_uart_tx #(
           case (PARITY_TYPE)
             //odd parity
             1:
-              reg_data[bits_per_trans-STOP_BITS-1] <= ^data ^ 1'b1;
+              r_tx_data[bits_per_trans-STOP_BITS-1] <= ^r_data ^ 1'b1;
             //mark parity
             2:
-              reg_data[bits_per_trans-STOP_BITS-1] <= 1'b1;
+              r_tx_data[bits_per_trans-STOP_BITS-1] <= 1'b1;
             //space parity
             3:
-              reg_data[bits_per_trans-STOP_BITS-1] <= 1'b0;
+              r_tx_data[bits_per_trans-STOP_BITS-1] <= 1'b0;
             //even parity
             default:
-              reg_data[bits_per_trans-STOP_BITS-1] <= ^data;
+              r_tx_data[bits_per_trans-STOP_BITS-1] <= ^r_data;
           endcase
             
         end
         //process command data to setup data transmission
         process: begin
-          if(trans_counter == 0)
+          if(piso_counter == 0)
           begin
             state <= trans;
 
             //insert start bit
-            reg_data[start_bit-1:0] <= 1'b0;
+            r_tx_data[start_bit-1:0] <= 1'b0;
 
             //insert stop bits
-            reg_data[bits_per_trans-1:bits_per_trans-STOP_BITS] <= {STOP_BITS{1'b1}};
+            r_tx_data[bits_per_trans-1:bits_per_trans-STOP_BITS] <= {STOP_BITS{1'b1}};
 
             //insert data
-            reg_data[bits_per_trans-STOP_BITS-PARITY_ENA-1:bits_per_trans-STOP_BITS-PARITY_ENA-DATA_BITS] <= data;
+            r_tx_data[bits_per_trans-STOP_BITS-PARITY_ENA-1:bits_per_trans-STOP_BITS-PARITY_ENA-DATA_BITS] <= r_data;
+
+            r_load <= 1'b1;
+            r_uart_hold <= 1'b0;
           end
-          
         end
         //transmit data, actually done in data output process below.
         trans: begin
           state <= trans;
+
+          r_load <= 1'b0;
+          r_uart_hold <= 1'b0;
           
-          if((trans_counter == bits_per_trans-1) && (prev_trans_counter == bits_per_trans-1)) begin
+          if((piso_counter == 0) && (uart_ena == 1'b1))
+          begin
+            r_uart_hold <= 1'b1;
+
             state <= data_cap;
           end
         end
@@ -202,54 +232,35 @@ module axis_uart_tx #(
   generate
     if(DELAY > 0) begin
       //DELAY tx data
-      reg [DELAY:0] DELAY_data = 0;
+      reg [DELAY:0] DELAY_data = ~0;
       
       assign txd = DELAY_data[DELAY];
       
       always @(posedge uart_clk) begin
         if(uart_rstn == 1'b0) begin
-          DELAY_data <= 0;
+          DELAY_data <= ~0;
         end else begin
-          DELAY_data <= {DELAY_data[DELAY-1:0], reg_txd};
+          DELAY_data <= {DELAY_data[DELAY-1:0], s_txd};
         end
       end
     end else begin
-      assign txd = reg_txd;
+      assign txd = s_txd;
     end
   endgenerate
-  
-  
-  //uart data output positive edge
-  always @(posedge uart_clk) begin
-    if(uart_rstn == 1'b0) begin
-      reg_txd             <= 1;
-      trans_counter       <= 0;
-      prev_trans_counter  <= 0;
-    end else begin
-      case (state)
-        //once the state machine is in transmisson state, begin data output
-        trans: begin
-          //on uart enable, send out data.
-          if(uart_ena == 1'b1) begin
-            reg_txd <= reg_data[trans_counter];
-          
-            trans_counter <= trans_counter + 1;
-            
-            prev_trans_counter  <= trans_counter;
-          end
-          
-          //once bits_per_trans-1 hold counter
-          if(trans_counter == bits_per_trans-1) begin
-            trans_counter <= bits_per_trans-1;
-          end
-        end
-        default: begin
-          //default state of counters and data output.
-          reg_txd             <= 1;
-          trans_counter       <= 0;
-          prev_trans_counter  <= 0;
-        end
-        endcase
-    end
-  end
+
+  piso #(
+    .BUS_WIDTH(TRANS_WIDTH),
+    .COUNT_AMOUNT(bits_per_trans),
+    .DEFAULT_RESET_VAL(1),
+    .DEFAULT_SHIFT_VAL(1)
+  ) inst_piso (
+    .clk(uart_clk),
+    .rstn(uart_rstn),
+    .ena(uart_ena),
+    .rev(1'b1),
+    .load(r_load),
+    .pdata({{TRANS_WIDTH*8-bits_per_trans{1'b1}}, r_tx_data}),
+    .sdata(s_txd),
+    .dcount(piso_counter)
+  );
 endmodule

@@ -32,6 +32,7 @@ module tb_uart_tx;
   
   reg         tb_data_clk = 0;
   reg         tb_baud_ena = 0;
+  wire        tb_baud_hold;
   reg         tb_rst = 0;
   wire        tb_txd;
   wire [7:0]  tb_tdata;
@@ -50,7 +51,7 @@ module tb_uart_tx;
     .BUS_WIDTH(1),
     .USER_WIDTH(1),
     .DEST_WIDTH(1),
-    .FILE("in.bin")
+    .FILE("const_data.bin")
   ) slave_axis_stim (
     // output to slave
     .m_axis_aclk(tb_data_clk),
@@ -69,7 +70,8 @@ module tb_uart_tx;
       .PARITY_ENA(1),
       .PARITY_TYPE(1),
       .STOP_BITS(1),
-      .DATA_BITS(8)
+      .DATA_BITS(8),
+      .BUS_WIDTH(1)
     ) dut (
       //clock and reset
       .aclk(tb_data_clk),
@@ -82,6 +84,7 @@ module tb_uart_tx;
       .uart_clk(tb_data_clk),
       .uart_rstn(~tb_rst),
       .uart_ena(tb_baud_ena),
+      .uart_hold(tb_baud_hold),
       .txd(tb_txd)
     );
     
