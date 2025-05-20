@@ -60,7 +60,7 @@ def random_bool():
 #   dut - Device under test passed from cocotb test function
 def start_clock(dut):
   # axis clock/baud gen base clock
-  cocotb.start_soon(Clock(dut.aclk, 2, units="ns").start())
+  cocotb.start_soon(Clock(dut.aclk, 20, units="ns").start())
   # baud clock enable
   cocotb.start_soon(Clock(dut.uart_clk, 8681, units="ns").start())
 
@@ -89,23 +89,21 @@ async def single_word(dut):
 
     uart_source = UartSource(dut.rxd, baud=115200, bits=dut.DATA_BITS.value, stop_bits=dut.STOP_BITS.value)
 
-    dut.uart_ena.value = 1
-
     await reset_dut(dut)
 
-    await RisingEdge(dut.uart_clk)
+    dut.uart_ena.value = 1
 
-    for x in range(0, 256):
-        data = x.to_bytes(length = 1, byteorder='little') * int(dut.DATA_BITS.value/8)
+    await RisingEdge(dut.aclk)
+
+    for x in range(1, 256):
+        data = x.to_bytes(length = 1, byteorder='little') * int(dut.BUS_WIDTH.value)
         await uart_source.write(data)
 
         rx_frame = await axis_sink.recv()
 
         assert rx_frame.tdata == data, "Input data does not match output"
 
-    await RisingEdge(dut.uart_clk)
-
-    await RisingEdge(dut.uart_clk)
+    await RisingEdge(dut.aclk)
 
     assert dut.m_axis_tvalid.value.integer == 0, "tvalid is 1!"
 

@@ -55,11 +55,12 @@ module tb_uart_rx;
   
   //device under test
   axis_uart_rx #(
-    .PARITY_ENA(1),
-    .PARITY_TYPE(1),
+    .PARITY_ENA(0),
+    .PARITY_TYPE(0),
     .STOP_BITS(1),
     .DATA_BITS(8),
-    .DELAY(3)
+    .DELAY(3),
+    .BUS_WIDTH(1)
   ) dut (
     //clock and reset
     .aclk(tb_data_clk),

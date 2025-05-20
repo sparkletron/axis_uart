@@ -38,7 +38,7 @@
  *
  * Test bench for axis uart.
  *
- * Parameters:
+* Parameters:
  *
  *   BAUD_CLOCK_SPEED - This is the aclk frequency in Hz
  *   BAUD_RATE        - Serial Baud, this can be any value including non-standard.
@@ -50,6 +50,7 @@
  *   RX_BAUD_DELAY    - Delay in rx baud enable. This will delay when we sample a bit (default is midpoint when rx delay is 0).
  *   TX_DELAY         - Delay in tx data output. Delays the time to output of the data.
  *   TX_BAUD_DELAY    - Delay in tx baud enable. This will delay the time the bit output starts.
+ *   BUS_WIDTH        - AXIS data bus width in bytes.
  *
  * Ports:
  *
@@ -72,34 +73,36 @@
  */
 module tb_cocotb #(
     parameter BAUD_CLOCK_SPEED  = 2000000,
-    parameter BAUD_RATE     = 2000000,
-    parameter PARITY_ENA    = 0,
-    parameter PARITY_TYPE   = 0,
-    parameter STOP_BITS     = 1,
-    parameter DATA_BITS     = 8,
-    parameter RX_DELAY      = 0,
+    parameter BAUD_RATE   = 2000000,
+    parameter PARITY_ENA  = 0,
+    parameter PARITY_TYPE = 0,
+    parameter STOP_BITS   = 1,
+    parameter DATA_BITS   = 8,
+    parameter RX_DELAY    = 0,
     parameter RX_BAUD_DELAY = 0,
-    parameter TX_DELAY      = 0,
-    parameter TX_BAUD_DELAY = 0
+    parameter TX_DELAY    = 0,
+    parameter TX_BAUD_DELAY = 0,
+    parameter BUS_WIDTH = 1
   )
   (
-    input                   aclk,
-    input                   arstn,
-    output                  parity_err,
-    output                  frame_err,
-    input  [DATA_BITS-1:0]  s_axis_tdata,
-    input                   s_axis_tvalid,
-    output                  s_axis_tready,
-    output [DATA_BITS-1:0]  m_axis_tdata,
-    output                  m_axis_tvalid,
-    input                   m_axis_tready,
-    input                   uart_clk,
-    input                   uart_rstn,
-    output                  tx,
-    input                   rx,
-    output                  rts,
-    input                   cts
+    input                     aclk,
+    input                     arstn,
+    output                    parity_err,
+    output                    frame_err,
+    input  [BUS_WIDTH*8-1:0]  s_axis_tdata,
+    input                     s_axis_tvalid,
+    output                    s_axis_tready,
+    output [BUS_WIDTH*8-1:0]  m_axis_tdata,
+    output                    m_axis_tvalid,
+    input                     m_axis_tready,
+    input                     uart_clk,
+    input                     uart_rstn,
+    output                    tx,
+    input                     rx,
+    output                    rts,
+    input                     cts
   );
+
   // fst dump command
   initial begin
     $dumpfile ("tb_cocotb.fst");
@@ -124,7 +127,8 @@ module tb_cocotb #(
     .RX_DELAY(RX_DELAY),
     .RX_BAUD_DELAY(RX_BAUD_DELAY),
     .TX_DELAY(TX_DELAY),
-    .TX_BAUD_DELAY(TX_BAUD_DELAY)
+    .TX_BAUD_DELAY(TX_BAUD_DELAY),
+    .BUS_WIDTH(BUS_WIDTH)
   ) dut (
     .aclk(aclk),
     .arstn(arstn),

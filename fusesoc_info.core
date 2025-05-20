@@ -70,8 +70,6 @@ targets:
     flow_options:
       tool: icarus
       cocotb_module: tb_cocotb_full
-      timescale: 1ns/1ns
-      vcs_options: [-timescale=1ns/1ns]
     filesets_append: [tb_cocotb_full]
     toplevel: tb_cocotb
     parameters:
@@ -93,8 +91,6 @@ targets:
     flow_options:
       tool: icarus
       cocotb_module: tb_cocotb_rx
-      timescale: 1ns/1ns
-      vcs_options: [-timescale=1ns/1ns]
     filesets_append: [tb_cocotb_rx]
     toplevel: tb_cocotb
     parameters:
@@ -111,8 +107,6 @@ targets:
     flow_options:
       tool: icarus
       cocotb_module: tb_cocotb_tx
-      timescale: 1ns/1ns
-      vcs_options: [-timescale=1ns/1ns]
     filesets_append: [tb_cocotb_tx]
     toplevel: tb_cocotb
     parameters:

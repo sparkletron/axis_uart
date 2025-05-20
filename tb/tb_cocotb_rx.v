@@ -45,6 +45,7 @@
  *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
  *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
  *   DELAY            - Delay in rx data input.
+ *   BUS_WIDTH        - BUS_WIDTH for axis bus in bytes.
  *
  * Ports:
  *
@@ -58,7 +59,7 @@
  *   uart_clk       - Clock used for BAUD rate generation
  *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
  *   uart_ena       - Enable UART data processing from RX.
- *   uart_hold      - Output to hold clock till in receive state.
+ *   uart_hold      - Output to hold back clock in reset state till uart is in receive state.
  *   rxd            - receive for UART (input from TX)
  */
 module tb_cocotb #(
@@ -66,14 +67,15 @@ module tb_cocotb #(
     parameter PARITY_TYPE = 0,
     parameter STOP_BITS   = 1,
     parameter DATA_BITS   = 8,
-    parameter DELAY       = 0
+    parameter DELAY       = 0,
+    parameter BUS_WIDTH   = 1
   )
   (
     input                       aclk,
     input                       arstn,
     output                      parity_err,
     output                      frame_err,
-    output  [DATA_BITS-1:0]     m_axis_tdata,
+    output  [BUS_WIDTH*8-1:0]   m_axis_tdata,
     output                      m_axis_tvalid,
     input                       m_axis_tready,
     input                       uart_clk,
@@ -82,6 +84,7 @@ module tb_cocotb #(
     output                      uart_hold,
     input                       rxd
   );
+
   // fst dump command
   initial begin
     $dumpfile ("tb_cocotb.fst");
@@ -101,7 +104,8 @@ module tb_cocotb #(
       .PARITY_TYPE(PARITY_TYPE),
       .STOP_BITS(STOP_BITS),
       .DATA_BITS(DATA_BITS),
-      .DELAY(DELAY)
+      .DELAY(DELAY),
+      .BUS_WIDTH(BUS_WIDTH)
     ) dut (
       .aclk(aclk),
       .arstn(arstn),
