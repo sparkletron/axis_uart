@@ -5,14 +5,19 @@
 
 ---
 
-   author: Jay Convertino   
+  author: Jay Convertino   
+  
+  date: 2021.06.23  
+  
+  details: Interface UART data at some baud to a axi streaming 8 bit interface.   
+  
+  license: MIT   
    
-   date: 2021.06.23  
-   
-   details: Interface UART data at some baud to a axi streaming 8 bit interface.   
-   
-   license: MIT   
-   
+  Actions:  
+
+  [![Lint Status](../../actions/workflows/lint.yml/badge.svg)](../../actions)  
+  [![Manual Status](../../actions/workflows/manual.yml/badge.svg)](../../actions)  
+  
 ---
 
 ### Version
@@ -67,6 +72,7 @@
 
 * RUN WITH: (fusesoc run --target=sim VENDER:CORE:NAME:VERSION)
   - default (for IP integration builds)
+  - lint
   - sim_cocotb_full
   - sim_cocotb_rx
   - sim_cocotb_tx

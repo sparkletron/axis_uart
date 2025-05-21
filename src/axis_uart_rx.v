@@ -274,7 +274,7 @@ module axis_uart_rx #(
   
   //DELAY input of data
   generate
-    if(DELAY > 0) begin
+    if(DELAY > 0) begin : gen_DELAY_ENABLED
       //DELAYs
       reg [DELAY:0] DELAY_rx;
       
@@ -287,7 +287,7 @@ module axis_uart_rx #(
           DELAY_rx <= {DELAY_rx[DELAY-1:0], rxd};
         end
       end
-    end else begin
+    end else begin : gen_DELAY_DISABLED
       assign s_rxd = rxd;
     end
   endgenerate

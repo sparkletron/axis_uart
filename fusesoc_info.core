@@ -48,7 +48,17 @@ targets:
   default: &default
     description: Default for IP intergration.
     filesets: [src, dep]
-
+    
+  lint:
+    description: Lint with Verible
+    toplevel: axis_uart
+    filesets: [src]
+    default_tool: veriblelint
+    tools:
+      veriblelint:
+        rules:
+         - "-explicit-parameter-storage-type,-parameter-name-style,-line-length,-no-trailing-spaces"
+         
   sim_rx:
     <<: *default
     description: Simulate only the rx block.
@@ -64,8 +74,7 @@ targets:
     toplevel: tb_uart_tx
 
   sim_cocotb_full:
-    <<: *default  - sim
-
+    <<: *default
     description: Cocotb unit tests
     flow: sim
     flow_options:

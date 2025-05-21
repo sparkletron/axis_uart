@@ -145,6 +145,8 @@ module axis_uart_tx #(
           r_data <= 0;
           r_s_axis_tvalid <= 1'b0;
         end
+        default: begin
+        end
       endcase
     end
   end
@@ -230,7 +232,7 @@ module axis_uart_tx #(
   
   //DELAY output of data
   generate
-    if(DELAY > 0) begin
+    if(DELAY > 0) begin : gen_DELAY_ENABLED
       //DELAY tx data
       reg [DELAY:0] DELAY_data = ~0;
       
@@ -243,7 +245,7 @@ module axis_uart_tx #(
           DELAY_data <= {DELAY_data[DELAY-1:0], s_txd};
         end
       end
-    end else begin
+    end else begin : gen_DELAY_DISABLED
       assign txd = s_txd;
     end
   endgenerate
