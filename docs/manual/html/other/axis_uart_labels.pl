@@ -3,7 +3,7 @@
 
 
 $key = q/Module_Documentation/;
-$external_labels{$key} = "$URL/" . q|axis_uart_node18.html|; 
+$external_labels{$key} = "$URL/" . q|axis_uart_node17.html|; 
 $noresave{$key} = "$nosave";
 
 1;

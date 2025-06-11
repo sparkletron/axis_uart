@@ -3,7 +3,7 @@
 <!--Converted with LaTeX2HTML 2024 (Released January 1, 2024) -->
 <HTML lang="en">
 <HEAD>
-<TITLE>iverilog</TITLE>
+<TITLE>cocotb</TITLE>
 
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
@@ -11,7 +11,6 @@
 
 <LINK REL="STYLESHEET" HREF="html.css">
 
-<LINK REL="next" HREF="axis_uart_node17.html">
 <LINK REL="previous" HREF="axis_uart_node15.html">
 <LINK REL="next" HREF="axis_uart_node17.html">
 </HEAD>
@@ -28,38 +27,56 @@
 <A
  HREF="axis_uart_node15.html">
 <IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
-<A ID="tex2html97"
+<A ID="tex2html82"
   HREF="axis_uart_node1.html">
 <IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
 <BR>
 <B> Next:</B> <A
- HREF="axis_uart_node17.html">cocotb</A>
+ HREF="axis_uart_node17.html">Module Documentation</A>
 <B> Up:</B> <A
  HREF="axis_uart_node15.html">Simulation</A>
 <B> Previous:</B> <A
  HREF="axis_uart_node15.html">Simulation</A>
- &nbsp; <B>  <A ID="tex2html98"
+ &nbsp; <B>  <A ID="tex2html83"
   HREF="axis_uart_node1.html">Contents</A></B> 
 <BR>
 <BR></DIV>
 <!--End of Navigation Panel-->
 
 <H2><A ID="SECTION00051000000000000000">
-iverilog</A>
+cocotb</A>
 </H2>
 
 <P>
-iverilog is used for simple test benches for quick verification, visually, of the core.
+To use the cocotb tests you must install the following python libraries.
+<TABLE FRAME="VOID" CELLPADDING="4"><TR><TD>
+<PRE>
+  $ pip install cocotb
+  $ pip install cocotbext-axi
+</PRE>
+</TD></TR></TABLE>
+
+<P>
+Each module has a cocotb based simulation. These use the cocotb extensions made by Alex.
+The two extensions used are cocotbext-axi and cocotbext-uart. These provide outside verification
+of the implimentation.
+
+<P>
 
 <UL>
-<LI><SPAN  CLASS="textbf">sim</SPAN> Standard simulation of TX/RX looped.
-</LI>
-<LI><SPAN  CLASS="textbf">sim_rx</SPAN> Simulation of receive only.
-</LI>
-<LI><SPAN  CLASS="textbf">sim_tx</SPAN> Simulation of transmit only.
+<LI><SPAN  CLASS="textbf">sim_cocotb_full</SPAN> Standard simulation of TX/RX passing data to and from cocotbexts.
 </LI>
 </UL>
 
+<P>
+Then you must use the cocotb sim target. The targets above can be run with various bus and fifo parameters.
+<TABLE FRAME="VOID" CELLPADDING="4"><TR><TD>
+<PRE>
+  $ fusesoc run --target AFRL:device_converter:axis_uart:1.0.0
+</PRE>
+</TD></TR></TABLE>
+
+<P>
 <P>
 <BR><HR>
 

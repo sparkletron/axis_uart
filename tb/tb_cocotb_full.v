@@ -38,69 +38,69 @@
  *
  * Test bench for axis uart.
  *
-* Parameters:
+ * AXIS UART DTE, a UART with AXI Streaming interface.
  *
- *   BAUD_CLOCK_SPEED - This is the aclk frequency in Hz
- *   BAUD_RATE        - Serial Baud, this can be any value including non-standard.
- *   PARITY_ENA       - Enable Parity for the data in and out.
- *   PARITY_TYPE      - Set the parity type, 0 = even, 1 = odd, 2 = mark, 3 = space.
- *   STOP_BITS        - Number of stop bits, 0 to crazy non-standard amounts.
- *   DATA_BITS        - Number of data bits, 1 to crazy non-standard amounts.
- *   RX_DELAY         - Delay in rx data input.
- *   RX_BAUD_DELAY    - Delay in rx baud enable. This will delay when we sample a bit (default is midpoint when rx delay is 0).
- *   TX_DELAY         - Delay in tx data output. Delays the time to output of the data.
- *   TX_BAUD_DELAY    - Delay in tx baud enable. This will delay the time the bit output starts.
- *   BUS_WIDTH        - AXIS data bus width in bytes.
+ * Parameters:
+ *
+ *   CLOCK_SPEED           - This is the aclk frequency in Hz
+ *   BUS_WIDTH             - AXIS data bus width in bytes.
+ *   RX_BAUD_DELAY         - DELAY RX internal baud rate by CLOCK_SPEED number of cycles.
+ *   TX_BAUD_DELAY         - DELAY TX internal baud rate by CLOCK_SPEED number of cycles.
  *
  * Ports:
  *
- *   aclk           - Clock for AXIS
- *   arstn          - Negative reset for AXIS
- *   parity_err     - Indicates error with parity check (active high)
- *   frame_err      - Indicates error with frame (active high)
- *   s_axis_tdata   - Input data for UART TX.
- *   s_axis_tvalid  - When set active high the input data is valid
- *   s_axis_tready  - When active high the device is ready for input data.
- *   m_axis_tdata   - Output data from UART RX
- *   m_axis_tvalid  - When active high the output data is valid
- *   m_axis_tready  - When set active high the output device is ready for data.
- *   uart_clk       - Clock used for BAUD rate generation
- *   uart_rstn      - Negative reset for UART, for anything clocked on uart_clk
- *   tx             - transmit for UART (output to RX)
- *   rx             - receive for UART (input from TX)
- *   rts            - request to send is a loop with CTS
- *   cts            - clear to send is a loop with RTS
+ *   aclk                  - Clock for AXIS
+ *   arstn                 - Negative reset for AXIS
+ *   reg_parity            - Set the parity type, 0 = none, 1 = odd, 2 = even, 3 = mark , 4 = space
+ *   reg_stop_bits         - Set the number of stop bits (0 to 3, 0=0, 1=1, 2=2, 3=??).
+ *   reg_data_bits         - Set the number of data bits up to the BUS_WIDTH*8 (1 to 16, all values are biased by 1, 0+1=1).
+ *   reg_baud_rate         - Frequency in Hz for the output/input data rate. This can be up to half of AXIS clock (any 32 bit unsigned value in Hz).
+ *   reg_istatus_bits      - Collection of input status bits for dtr,cts,dts,dcd.
+ *   reg_ostatus_bits      - Collection of output status bits for rx/tx frame, rx parity.
+ *   s_axis_tdata          - Input data for UART TX.
+ *   s_axis_tvalid         - When set active high the input data is valid
+ *   s_axis_tready         - When active high the device is ready for input data.
+ *   m_axis_tdata          - Output data from UART RX
+ *   m_axis_tvalid         - When active high the output data is valid
+ *   m_axis_tready         - When set active high the output device is ready for data.
+ *   uart_clk              - Clock used for BAUD rate generation
+ *   uart_rstn             - Negative reset for UART, for anything clocked on uart_clk
+ *   tx                    - transmit for UART (output to RX)
+ *   rx                    - receive for UART (input from TX)
+ *   rts                   - request to send is a loop with CTS
+ *   dtr                   - data terminal ready
+ *   cts                   - clear to send is a loop with RTS
+ *   ri                    - ring indicator
  */
 module tb_cocotb #(
-    parameter BAUD_CLOCK_SPEED  = 2000000,
-    parameter BAUD_RATE   = 2000000,
-    parameter PARITY_ENA  = 0,
-    parameter PARITY_TYPE = 0,
-    parameter STOP_BITS   = 1,
-    parameter DATA_BITS   = 8,
-    parameter RX_DELAY    = 0,
+    parameter CLOCK_SPEED  = 2000000,
+    parameter BUS_WIDTH = 1,
     parameter RX_BAUD_DELAY = 0,
-    parameter TX_DELAY    = 0,
-    parameter TX_BAUD_DELAY = 0,
-    parameter BUS_WIDTH = 1
-  )
+    parameter TX_BAUD_DELAY = 0
+  ) 
   (
-    input                     aclk,
-    input                     arstn,
-    output                    parity_err,
-    output                    frame_err,
-    input  [BUS_WIDTH*8-1:0]  s_axis_tdata,
-    input                     s_axis_tvalid,
-    output                    s_axis_tready,
-    output [BUS_WIDTH*8-1:0]  m_axis_tdata,
-    output                    m_axis_tvalid,
-    input                     m_axis_tready,
-    input                     uart_clk,
-    input                     uart_rstn,
-    output                    tx,
-    input                     rx,
-    output                    rts,
-    input                     cts
+    input   wire                     aclk,
+    input   wire                     arstn,
+    input   wire  [ 2:0]             reg_parity,
+    input   wire  [ 1:0]             reg_stop_bits,
+    input   wire  [ 3:0]             reg_data_bits,
+    input   wire  [31:0]             reg_baud_rate,
+    input   wire  [ 7:0]             reg_istatus_bits,
+    output  wire  [ 7:0]             reg_ostatus_bits,
+    input   wire  [BUS_WIDTH*8-1:0]  s_axis_tdata,
+    input   wire                     s_axis_tvalid,
+    output  wire                     s_axis_tready,
+    output  wire  [BUS_WIDTH*8-1:0]  m_axis_tdata,
+    output  wire                     m_axis_tvalid,
+    input   wire                     m_axis_tready,
+    output  wire                     tx,
+    input   wire                     rx,
+    output  wire                     dtr,
+    input   wire                     dcd,
+    input   wire                     dsr,
+    output  wire                     rts,
+    input   wire                     cts,
+    input   wire                     ri
   );
 
   // fst dump command
@@ -118,34 +118,33 @@ module tb_cocotb #(
    * Device under test, axis_uart
    */
   axis_uart #(
-    .BAUD_CLOCK_SPEED(BAUD_CLOCK_SPEED),
-    .BAUD_RATE(BAUD_RATE),
-    .PARITY_ENA(PARITY_ENA),
-    .PARITY_TYPE(PARITY_TYPE),
-    .STOP_BITS(STOP_BITS),
-    .DATA_BITS(DATA_BITS),
-    .RX_DELAY(RX_DELAY),
-    .RX_BAUD_DELAY(RX_BAUD_DELAY),
-    .TX_DELAY(TX_DELAY),
-    .TX_BAUD_DELAY(TX_BAUD_DELAY),
-    .BUS_WIDTH(BUS_WIDTH)
+    .CLOCK_SPEED(CLOCK_SPEED),
+    .BUS_WIDTH(BUS_WIDTH),
+    .RX_BAUD_DELAY(0),
+    .TX_BAUD_DELAY(0)
   ) dut (
     .aclk(aclk),
     .arstn(arstn),
-    .parity_err(parity_err),
-    .frame_err(frame_err),
+    .reg_parity(reg_parity),
+    .reg_stop_bits(reg_stop_bits),
+    .reg_data_bits(reg_data_bits),
+    .reg_baud_rate(reg_baud_rate),
+    .reg_istatus_bits(reg_istatus_bits),
+    .reg_ostatus_bits(reg_ostatus_bits),
     .s_axis_tdata(s_axis_tdata),
     .s_axis_tvalid(s_axis_tvalid),
     .s_axis_tready(s_axis_tready),
     .m_axis_tdata(m_axis_tdata),
     .m_axis_tvalid(m_axis_tvalid),
     .m_axis_tready(m_axis_tready),
-    .uart_clk(uart_clk),
-    .uart_rstn(uart_rstn),
     .tx(tx),
     .rx(rx),
+    .dtr(dtr),
+    .dcd(dcd),
+    .dsr(dsr),
     .rts(rts),
-    .cts(cts)
+    .cts(cts),
+    .ri(ri)
   );
   
 endmodule

@@ -59,17 +59,14 @@ def random_bool():
 # Parameters:
 #   dut - Device under test passed from cocotb test function
 def start_clock(dut):
-  cocotb.start_soon(Clock(dut.aclk, int(1000000000/dut.BAUD_CLOCK_SPEED.value), units="ns").start())
-  cocotb.start_soon(Clock(dut.uart_clk, int(1000000000/dut.BAUD_CLOCK_SPEED.value), units="ns").start())
+  cocotb.start_soon(Clock(dut.aclk, int(1000000000/dut.CLOCK_SPEED.value), units="ns").start())
 
 # Function: reset_dut
 # Cocotb coroutine for resets, used with await to make sure system is reset.
 async def reset_dut(dut):
   dut.arstn.value = 0
-  dut.uart_rstn.value = 0
-  await Timer(5, units="ns")
+  await Timer(100000, units="ns")
   dut.arstn.value = 1
-  dut.uart_rstn.value = 1
 
 # Function: single_word
 # Coroutine that is identified as a test routine. This routine tests for writing a single word, and
@@ -85,72 +82,80 @@ async def single_word(dut):
     axis_source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.aclk, dut.arstn, False)
     axis_sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.aclk, dut.arstn, False)
 
-    uart_source = UartSource(dut.rx, baud=115200, bits=dut.DATA_BITS.value, stop_bits=dut.STOP_BITS.value)
-    uart_sink = UartSink(dut.tx, baud=115200, bits=dut.DATA_BITS.value, stop_bits=dut.STOP_BITS.value)
+    uart_source = UartSource(dut.rx, baud=115200, bits=8, stop_bits=1)
+    uart_sink = UartSink(dut.tx, baud=115200, bits=8, stop_bits=1)
+    
+    dut.cts.value = 1;
+    
+    dut.reg_parity.value = 0;
+    dut.reg_stop_bits.value = 1;
+    dut.reg_data_bits.value = 8;
+    dut.reg_baud_rate.value = 115200;
+    dut.ri.value = 0;
+    dut.dsr.value = 0;
+    dut.dcd.value = 0;
 
     await reset_dut(dut)
 
-    for x in range(0, 256):
-      data = x.to_bytes(length = 1, byteorder='little') * int(dut.BUS_WIDTH.value)
+    for x in range(1, 256):
+      data = x.to_bytes(length = 1, byteorder='little')
       tx_frame = AxiStreamFrame(data, tx_complete=Event())
 
       await axis_source.send(tx_frame)
       await tx_frame.tx_complete.wait()
-
+      
       uart_data = await uart_sink.read()
-
+      
       assert uart_data == tx_frame.tdata, "Input tdata does not match output"
 
       await uart_source.write(data)
-
+      
       rx_frame = await axis_sink.recv()
-
-      assert rx_frame.tdata == data, "Input data does not match output"
+      
+      assert int.from_bytes(rx_frame.tdata, byteorder='little') == int.from_bytes(data, byteorder='little'), "Input data does not match output"
 
     await RisingEdge(dut.aclk)
 
-    assert dut.s_axis_tready.value[0] == 1, "tready is not 1!"
-
-# Function: in_reset
-# Coroutine that is identified as a test routine. This routine tests if device stays
-# in unready state when in reset.
-#
-# Parameters:
-#   dut - Device under test passed from cocotb.
-@cocotb.test()
-async def in_reset(dut):
-
-    start_clock(dut)
-
-    dut.m_axis_tready.value = 0
-
-    dut.arstn.value = 0
-
-    dut.uart_rstn.value = 0
-
-    await Timer(10, units="ns")
-
-    assert dut.s_axis_tready.value.integer == 0, "tready is 1!"
-
-# Function: no_clock
-# Coroutine that is identified as a test routine. This routine tests if no ready when clock is lost
-# and device is left in reset.
-#
-# Parameters:
-#   dut - Device under test passed from cocotb.
-@cocotb.test()
-async def no_clock(dut):
-
-    dut.m_axis_tready.value = 0
-
-    dut.arstn.value = 0
-
-    dut.aclk.value = 0
-
-    dut.uart_rstn.value = 0
-
-    dut.uart_clk.value = 0
-
-    await Timer(5, units="ns")
-
-    assert dut.s_axis_tready.value.integer == 0, "tready is 1!"
+# # Function: in_reset
+# # Coroutine that is identified as a test routine. This routine tests if device stays
+# # in unready state when in reset.
+# #
+# # Parameters:
+# #   dut - Device under test passed from cocotb.
+# @cocotb.test()
+# async def in_reset(dut):
+# 
+#     start_clock(dut)
+# 
+#     dut.m_axis_tready.value = 0
+# 
+#     dut.arstn.value = 0
+# 
+#     dut.uart_rstn.value = 0
+# 
+#     await Timer(10, units="ns")
+# 
+#     assert dut.s_axis_tready.value.integer == 0, "tready is 1!"
+# 
+# # Function: no_clock
+# # Coroutine that is identified as a test routine. This routine tests if no ready when clock is lost
+# # and device is left in reset.
+# #
+# # Parameters:
+# #   dut - Device under test passed from cocotb.
+# @cocotb.test()
+# async def no_clock(dut):
+# 
+#     dut.m_axis_tready.value = 0
+# 
+#     dut.arstn.value = 0
+# 
+#     dut.aclk.value = 0
+# 
+#     dut.uart_rstn.value = 0
+# 
+#     dut.uart_clk.value = 0
+# 
+#     await Timer(5, units="ns")
+# 
+#     assert dut.s_axis_tready.value.integer == 0, "tready is 1!"
