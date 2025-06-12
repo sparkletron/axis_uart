@@ -289,7 +289,7 @@ module axis_uart #(
             r_tx_hold   <= 1'b0;
             
             //insert data bits with and fill with ones for stop bits
-            r_tx_buffer[BUS_WIDTH*8-1:1] <= s_axis_tdata[BUS_WIDTH*8-2:0] | (~0 << reg_data_bits + s_parity_ena);;
+            r_tx_buffer[BUS_WIDTH*8-1:1] <= s_axis_tdata[BUS_WIDTH*8-2:0] | (~0 << reg_data_bits + s_parity_ena);
             //insert start bit
             r_tx_buffer[0] <= 1'b0;
             
