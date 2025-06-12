@@ -109,10 +109,10 @@ module axis_uart #(
   
   wire  s_parity_ena;
   
-  wire  [31:0]  s_rx_dcount;
-  wire  [31:0]  s_tx_dcount;
+  wire  [ 7:0]  s_rx_dcount;
+  wire  [ 7:0]  s_tx_dcount;
   
-  wire  [BUS_WIDTH*8-1:0] s_rx_buffer;
+  wire  [31:0] s_rx_buffer;
   
   wire  s_tx_uart_ena;
   wire  s_rx_uart_ena;
@@ -137,7 +137,7 @@ module axis_uart #(
   reg   r_rx_parity_error;
   reg   r_rx_stop_bit_error;
   
-  reg   [BUS_WIDTH*8-1:0] r_tx_buffer;
+  reg   [31:0] r_tx_buffer;
   
   reg   [31:0] r_baud_rate;
   
@@ -210,7 +210,7 @@ module axis_uart #(
    * take axis input parallel data at bus size, and output the word to the UART TX
    */
   piso #(
-    .BUS_WIDTH(BUS_WIDTH),
+    .BUS_WIDTH(4),
     .DEFAULT_RESET_VAL(1),
     .DEFAULT_SHIFT_VAL(1)
   ) inst_piso (
@@ -220,6 +220,7 @@ module axis_uart #(
     .rev(1'b1),
     .load(r_tx_load),
     .pdata(r_tx_buffer),
+    .reg_count_amount(reg_stop_bits+reg_data_bits+s_parity_ena+1),
     .sdata(tx),
     .dcount(s_tx_dcount)
   );
@@ -230,7 +231,7 @@ module axis_uart #(
    * take UART RX data, and output the word to the parallel data bus.
    */
   sipo #(
-    .BUS_WIDTH(BUS_WIDTH)
+    .BUS_WIDTH(4)
   ) inst_sipo (
     .clk(aclk),
     .rstn(arstn),
@@ -238,6 +239,7 @@ module axis_uart #(
     .rev(1'b1),
     .load(r_rx_load),
     .pdata(s_rx_buffer),
+    .reg_count_amount(reg_stop_bits+reg_data_bits+s_parity_ena+1),
     .sdata(rx),
     .dcount(s_rx_dcount)
   );
@@ -277,7 +279,7 @@ module axis_uart #(
       case (r_tx_state)
         uart_state_idle:
         begin
-          r_tx_frame_error <= (reg_stop_bits+reg_data_bits+s_parity_ena+1 > BUS_WIDTH*8 ? 1'b1 : 1'b0);
+          r_tx_frame_error <= (reg_stop_bits+reg_data_bits+s_parity_ena+1 > 32 ? 1'b1 : 1'b0);
           
           r_tx_state <= uart_state_idle;
           
@@ -289,7 +291,7 @@ module axis_uart #(
             r_tx_hold   <= 1'b0;
             
             //insert data bits with and fill with ones for stop bits
-            r_tx_buffer[BUS_WIDTH*8-1:1] <= s_axis_tdata[BUS_WIDTH*8-2:0] | (~0 << reg_data_bits + s_parity_ena);
+            r_tx_buffer[31:1] <= s_axis_tdata[BUS_WIDTH*8-2:0] | (~0 << reg_data_bits + s_parity_ena);
             //insert start bit
             r_tx_buffer[0] <= 1'b0;
             
@@ -328,8 +330,8 @@ module axis_uart #(
           
           r_tx_load <= 1'b0;
           
-          //check to see if we have pushed out all data, counter starts at full BUS_WIDTH not word transmit length.
-          if(s_tx_dcount <= (BUS_WIDTH*8-(reg_stop_bits+reg_data_bits+s_parity_ena+1)) && (s_tx_uart_ena == 1'b1))
+          //check to see if we have pushed out all data, counter starts at reg_count_amount
+          if(s_tx_dcount == 0 && r_tx_load != 1'b1)
           begin
             r_tx_hold  <= 1'b1;
             r_tx_state <= uart_state_idle;
@@ -368,7 +370,7 @@ module axis_uart #(
           
           r_rx_state <= uart_state_idle;
           
-          r_rx_frame_error <= (reg_stop_bits+reg_data_bits+s_parity_ena+1 > BUS_WIDTH*8 ? 1'b1 : 1'b0);
+          r_rx_frame_error <= (reg_stop_bits+reg_data_bits+s_parity_ena+1 > 32 ? 1'b1 : 1'b0);
       
           if(m_axis_tready == 1'b1)
           begin
@@ -394,7 +396,7 @@ module axis_uart #(
           begin
             r_rx_state <= uart_state_idle;
             
-            r_m_axis_tdata  <= (s_rx_buffer >> (BUS_WIDTH*8-(reg_data_bits+1))) & ~(~0 << reg_data_bits);
+            r_m_axis_tdata  <= {1'b0, s_rx_buffer[31:1]} & ~(~0 << reg_data_bits);
             r_m_axis_tvalid <= 1'b1;
             
             r_rx_uart_clr <= 1'b1;
@@ -414,7 +416,7 @@ module axis_uart #(
                 //odd parity
                 1:
                 begin
-                  if(^(s_rx_buffer & ~(~0 << reg_data_bits)) ^ 1'b1 ^ s_rx_buffer[reg_data_bits+1])
+                  if(^(s_rx_buffer & ~(~0 << reg_data_bits+1)) ^ 1'b1 ^ s_rx_buffer[reg_data_bits+1])
                   begin
                     r_rx_parity_error <= 1'b1;
                   end
@@ -422,7 +424,7 @@ module axis_uart #(
                 //even parity
                 2: 
                 begin
-                  if(^(s_rx_buffer & ~(~0 << reg_data_bits))  ^ s_rx_buffer[reg_data_bits+1])
+                  if(^(s_rx_buffer & ~(~0 << reg_data_bits+1))  ^ s_rx_buffer[reg_data_bits+1])
                   begin
                     r_rx_parity_error <= 1'b1;
                   end
